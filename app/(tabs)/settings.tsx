@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import i18n from '../../src/i18n';
 import { getSettings, saveSettings } from '../../src/storage';
 import { Country, Currency, EmploymentType, Language, UserSettings, COUNTRY_DEFAULTS, COUNTRY_EMPLOYMENT_TYPES } from '../../src/types';
-import { colors, radius, shadow, spacing, typography } from '../../src/styles/theme';
+import { useTheme } from '../../src/context/ThemeContext';
+import { radius, shadow, shadowSm, spacing } from '../../src/styles/theme';
 
 const COUNTRIES: Country[] = ['PL', 'NO', 'UK', 'DE'];
 const CURRENCIES: Currency[] = ['PLN', 'NOK', 'GBP', 'EUR', 'USD'];
@@ -14,9 +15,15 @@ const LANGUAGES: { value: Language; label: string }[] = [
   { value: 'pl', label: 'Polski' },
 ];
 const LUMP_RATES = [0.085, 0.12, 0.14, 0.15, 0.17];
+const THEME_MODES = [
+  { value: 'light', icon: 'sunny-outline', label: 'Light' },
+  { value: 'dark', icon: 'moon-outline', label: 'Dark' },
+  { value: 'auto', icon: 'contrast-outline', label: 'Auto' },
+] as const;
 
 export default function SettingsScreen() {
   const { t } = useTranslation();
+  const { colors, mode, setMode } = useTheme();
   const [settings, setSettings] = useState<UserSettings | null>(null);
   const [saved, setSaved] = useState(false);
 
@@ -27,8 +34,8 @@ export default function SettingsScreen() {
   }
 
   function handleCountryChange(country: Country) {
-    const defaults = COUNTRY_DEFAULTS[country];
-    setSettings((prev) => prev ? { ...prev, country, employmentType: defaults.employmentType, currency: defaults.currency } : prev);
+    const d = COUNTRY_DEFAULTS[country];
+    setSettings((prev) => prev ? { ...prev, country, employmentType: d.employmentType, currency: d.currency } : prev);
   }
 
   async function handleSave() {
@@ -44,150 +51,168 @@ export default function SettingsScreen() {
   const employmentTypes = COUNTRY_EMPLOYMENT_TYPES[settings.country];
   const showB2bOptions = ['pl_b2b_linear', 'pl_b2b_scale', 'pl_b2b_lump'].includes(settings.employmentType);
   const showTaxRelief = ['pl_employment', 'pl_b2b_scale'].includes(settings.employmentType);
-  const showLumpRate = settings.employmentType === 'pl_b2b_lump';
 
   return (
-    <ScrollView style={styles.root} contentContainerStyle={styles.container}>
+    <ScrollView style={{ backgroundColor: colors.bg }} contentContainerStyle={[st.container, { backgroundColor: colors.bg }]}>
 
-      <Section title={t('settings.country')}>
-        <View style={styles.grid}>
-          {COUNTRIES.map((c) => (
-            <TouchableOpacity key={c} style={[styles.chip, settings.country === c && styles.chipActive]} onPress={() => handleCountryChange(c)}>
-              <Text style={[styles.chipText, settings.country === c && styles.chipTextActive]}>{t(`settings.country_${c}`)}</Text>
+      {/* Appearance */}
+      <SectionHeader title="Appearance" colors={colors} />
+      <View style={[st.card, { backgroundColor: colors.surface, ...shadowSm(colors.shadow) }]}>
+        <View style={st.themeRow}>
+          {THEME_MODES.map(({ value, icon, label }) => (
+            <TouchableOpacity key={value} style={[st.themeBtn, { borderColor: mode === value ? colors.primary : colors.border, backgroundColor: mode === value ? colors.primaryLight : colors.surface2 }]} onPress={() => setMode(value)}>
+              <Ionicons name={icon as any} size={20} color={mode === value ? colors.primary : colors.textMuted} />
+              <Text style={[st.themeBtnText, { color: mode === value ? colors.primary : colors.textSec }]}>{label}</Text>
             </TouchableOpacity>
           ))}
         </View>
-      </Section>
+      </View>
 
-      <Section title={t('settings.employmentType')}>
-        {employmentTypes.map((type) => (
-          <TouchableOpacity
-            key={type}
-            style={[styles.option, settings.employmentType === type && styles.optionActive]}
-            onPress={() => update('employmentType', type)}
-          >
-            <View style={[styles.radio, settings.employmentType === type && styles.radioActive]}>
-              {settings.employmentType === type && <View style={styles.radioDot} />}
-            </View>
-            <Text style={[styles.optionText, settings.employmentType === type && styles.optionTextActive]}>
-              {t(`settings.employment_${type}`)}
-            </Text>
+      {/* Language */}
+      <SectionHeader title={t('settings.language')} colors={colors} />
+      <View style={[st.card, { backgroundColor: colors.surface, ...shadowSm(colors.shadow) }]}>
+        <View style={st.pillRow}>
+          {LANGUAGES.map((l) => (
+            <TouchableOpacity key={l.value} style={[st.pill, { borderColor: settings.language === l.value ? colors.primary : colors.border, backgroundColor: settings.language === l.value ? colors.primaryLight : 'transparent' }]} onPress={() => update('language', l.value)}>
+              <Text style={[st.pillText, { color: settings.language === l.value ? colors.primary : colors.textSec }]}>{l.label}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+
+      {/* Country */}
+      <SectionHeader title={t('settings.country')} colors={colors} />
+      <View style={[st.card, { backgroundColor: colors.surface, ...shadowSm(colors.shadow) }]}>
+        {COUNTRIES.map((c, i) => (
+          <TouchableOpacity key={c} style={[st.row, { borderBottomWidth: i < COUNTRIES.length - 1 ? 1 : 0, borderBottomColor: colors.borderLight }]} onPress={() => handleCountryChange(c)}>
+            <Text style={[st.rowText, { color: colors.text }]}>{t(`settings.country_${c}`)}</Text>
+            {settings.country === c && <Ionicons name="checkmark" size={20} color={colors.primary} />}
           </TouchableOpacity>
         ))}
-      </Section>
+      </View>
 
-      <Section title={t('settings.hourlyRate')}>
-        <View style={styles.rateRow}>
+      {/* Employment type */}
+      <SectionHeader title={t('settings.employmentType')} colors={colors} />
+      <View style={[st.card, { backgroundColor: colors.surface, ...shadowSm(colors.shadow) }]}>
+        {employmentTypes.map((type, i) => (
+          <TouchableOpacity key={type} style={[st.row, { borderBottomWidth: i < employmentTypes.length - 1 ? 1 : 0, borderBottomColor: colors.borderLight, backgroundColor: settings.employmentType === type ? colors.primaryLight : 'transparent' }]} onPress={() => update('employmentType', type)}>
+            <Text style={[st.rowText, { color: settings.employmentType === type ? colors.primary : colors.text, fontWeight: settings.employmentType === type ? '600' : '400' }]}>{t(`settings.employment_${type}`)}</Text>
+            {settings.employmentType === type && <Ionicons name="checkmark-circle" size={20} color={colors.primary} />}
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      {/* Hourly rate */}
+      <SectionHeader title={t('settings.hourlyRate')} colors={colors} />
+      <View style={[st.card, { backgroundColor: colors.surface, ...shadowSm(colors.shadow) }]}>
+        <View style={[st.rateWrap, { borderColor: colors.border }]}>
           <TextInput
-            style={styles.rateInput}
+            style={[st.rateInput, { color: colors.text }]}
             keyboardType="numeric"
             value={String(settings.hourlyRate)}
             onChangeText={(v) => update('hourlyRate', parseFloat(v.replace(',', '.')) || 0)}
+            selectionColor={colors.primary}
           />
-          <Text style={styles.rateCurrency}>{settings.currency}</Text>
-        </View>
-      </Section>
-
-      <Section title={t('settings.currency')}>
-        <View style={styles.chips}>
-          {CURRENCIES.map((c) => (
-            <TouchableOpacity key={c} style={[styles.chip, settings.currency === c && styles.chipActive]} onPress={() => update('currency', c)}>
-              <Text style={[styles.chipText, settings.currency === c && styles.chipTextActive]}>{c}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </Section>
-
-      <Section title={t('settings.language')}>
-        <View style={styles.chips}>
-          {LANGUAGES.map((l) => (
-            <TouchableOpacity key={l.value} style={[styles.chip, settings.language === l.value && styles.chipActive]} onPress={() => update('language', l.value)}>
-              <Text style={[styles.chipText, settings.language === l.value && styles.chipTextActive]}>{l.label}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </Section>
-
-      {showTaxRelief && (
-        <Section title={t('settings.taxRelief')}>
-          <View style={styles.switchRow}>
-            <Text style={styles.switchLabel}>{t('settings.taxRelief')}</Text>
-            <Switch value={settings.taxReliefEnabled} onValueChange={(v) => update('taxReliefEnabled', v)} trackColor={{ true: colors.primary }} />
+          <View style={[st.rateUnit, { backgroundColor: colors.surface2, borderLeftColor: colors.border }]}>
+            <Text style={[st.rateUnitText, { color: colors.textSec }]}>{settings.currency}/h</Text>
           </View>
-        </Section>
-      )}
+        </View>
+      </View>
 
-      {showB2bOptions && (
-        <Section title={t('settings.b2bZus')}>
-          {(['preferential', 'full'] as const).map((type) => (
-            <TouchableOpacity key={type} style={[styles.option, settings.b2bZusType === type && styles.optionActive]} onPress={() => update('b2bZusType', type)}>
-              <View style={[styles.radio, settings.b2bZusType === type && styles.radioActive]}>
-                {settings.b2bZusType === type && <View style={styles.radioDot} />}
-              </View>
-              <Text style={[styles.optionText, settings.b2bZusType === type && styles.optionTextActive]}>{t(`settings.b2bZus${type.charAt(0).toUpperCase() + type.slice(1)}`)}</Text>
+      {/* Currency */}
+      <SectionHeader title={t('settings.currency')} colors={colors} />
+      <View style={[st.card, { backgroundColor: colors.surface, ...shadowSm(colors.shadow) }]}>
+        <View style={st.pillRow}>
+          {CURRENCIES.map((c) => (
+            <TouchableOpacity key={c} style={[st.pill, { borderColor: settings.currency === c ? colors.primary : colors.border, backgroundColor: settings.currency === c ? colors.primaryLight : 'transparent' }]} onPress={() => update('currency', c)}>
+              <Text style={[st.pillText, { color: settings.currency === c ? colors.primary : colors.textSec }]}>{c}</Text>
             </TouchableOpacity>
           ))}
-        </Section>
+        </View>
+      </View>
+
+      {/* Tax relief toggle */}
+      {showTaxRelief && (
+        <>
+          <SectionHeader title="Tax options" colors={colors} />
+          <View style={[st.card, { backgroundColor: colors.surface, ...shadowSm(colors.shadow) }]}>
+            <View style={st.switchRow}>
+              <View>
+                <Text style={[st.switchLabel, { color: colors.text }]}>{t('settings.taxRelief')}</Text>
+                <Text style={[st.switchSub, { color: colors.textMuted }]}>30,000 PLN / year</Text>
+              </View>
+              <Switch value={settings.taxReliefEnabled} onValueChange={(v) => update('taxReliefEnabled', v)} trackColor={{ true: colors.primary }} thumbColor="#fff" />
+            </View>
+          </View>
+        </>
       )}
 
-      {showLumpRate && (
-        <Section title={t('settings.lumpRate')}>
-          <View style={styles.chips}>
-            {LUMP_RATES.map((r) => (
-              <TouchableOpacity key={r} style={[styles.chip, settings.b2bLumpRate === r && styles.chipActive]} onPress={() => update('b2bLumpRate', r)}>
-                <Text style={[styles.chipText, settings.b2bLumpRate === r && styles.chipTextActive]}>{(r * 100).toFixed(1)}%</Text>
+      {/* B2B ZUS */}
+      {showB2bOptions && (
+        <>
+          <SectionHeader title={t('settings.b2bZus')} colors={colors} />
+          <View style={[st.card, { backgroundColor: colors.surface, ...shadowSm(colors.shadow) }]}>
+            {(['preferential', 'full'] as const).map((type, i) => (
+              <TouchableOpacity key={type} style={[st.row, { borderBottomWidth: i === 0 ? 1 : 0, borderBottomColor: colors.borderLight, backgroundColor: settings.b2bZusType === type ? colors.primaryLight : 'transparent' }]} onPress={() => update('b2bZusType', type)}>
+                <Text style={[st.rowText, { color: settings.b2bZusType === type ? colors.primary : colors.text, fontWeight: settings.b2bZusType === type ? '600' : '400' }]}>{t(`settings.b2bZus${type.charAt(0).toUpperCase() + type.slice(1)}`)}</Text>
+                {settings.b2bZusType === type && <Ionicons name="checkmark" size={20} color={colors.primary} />}
               </TouchableOpacity>
             ))}
           </View>
-        </Section>
+        </>
       )}
 
-      <TouchableOpacity style={[styles.saveBtn, saved && styles.saveBtnDone]} onPress={handleSave} activeOpacity={0.85}>
-        <Ionicons name={saved ? 'checkmark' : 'save-outline'} size={20} color="#fff" />
-        <Text style={styles.saveBtnText}>{saved ? t('settings.saved') : t('settings.save')}</Text>
-      </TouchableOpacity>
+      {/* Lump rate */}
+      {settings.employmentType === 'pl_b2b_lump' && (
+        <>
+          <SectionHeader title={t('settings.lumpRate')} colors={colors} />
+          <View style={[st.card, { backgroundColor: colors.surface, ...shadowSm(colors.shadow) }]}>
+            <View style={st.pillRow}>
+              {LUMP_RATES.map((r) => (
+                <TouchableOpacity key={r} style={[st.pill, { borderColor: settings.b2bLumpRate === r ? colors.primary : colors.border, backgroundColor: settings.b2bLumpRate === r ? colors.primaryLight : 'transparent' }]} onPress={() => update('b2bLumpRate', r)}>
+                  <Text style={[st.pillText, { color: settings.b2bLumpRate === r ? colors.primary : colors.textSec }]}>{(r * 100).toFixed(1)}%</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        </>
+      )}
 
+      {/* Save button */}
+      <TouchableOpacity style={[st.saveBtn, { backgroundColor: saved ? '#059669' : colors.primary }]} onPress={handleSave} activeOpacity={0.85}>
+        <Ionicons name={saved ? 'checkmark-circle' : 'save-outline'} size={20} color="#fff" />
+        <Text style={st.saveBtnText}>{saved ? t('settings.saved') : t('settings.save')}</Text>
+      </TouchableOpacity>
+      <View style={{ height: spacing.xl }} />
     </ScrollView>
   );
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <View style={sectionStyles.container}>
-      <Text style={sectionStyles.title}>{title}</Text>
-      <View style={sectionStyles.card}>{children}</View>
-    </View>
-  );
+function SectionHeader({ title, colors }: { title: string; colors: any }) {
+  return <Text style={[hst.label, { color: colors.textMuted }]}>{title.toUpperCase()}</Text>;
 }
-
-const sectionStyles = StyleSheet.create({
-  container: { gap: spacing.xs },
-  title: { ...typography.xs, color: colors.textSecondary, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.8, paddingHorizontal: spacing.xs },
-  card: { backgroundColor: colors.card, borderRadius: radius.lg, overflow: 'hidden', ...shadow.sm },
+const hst = StyleSheet.create({
+  label: { fontSize: 11, fontWeight: '700', letterSpacing: 1.1, paddingHorizontal: spacing.xs, marginTop: spacing.xs },
 });
 
-const styles = StyleSheet.create({
-  root: { backgroundColor: colors.bg },
-  container: { padding: spacing.md, gap: spacing.md, paddingBottom: spacing.xl },
-  grid: { padding: spacing.sm, gap: spacing.sm },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', padding: spacing.sm, gap: spacing.xs },
-  chip: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radius.md, borderWidth: 1.5, borderColor: colors.border },
-  chipActive: { borderColor: colors.primary, backgroundColor: colors.primaryLight },
-  chipText: { ...typography.sm, color: colors.textSecondary, fontWeight: '600' },
-  chipTextActive: { color: colors.primary, fontWeight: '700' },
-  option: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.border },
-  optionActive: { backgroundColor: colors.primaryLight },
-  radio: { width: 20, height: 20, borderRadius: 10, borderWidth: 2, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
-  radioActive: { borderColor: colors.primary },
-  radioDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: colors.primary },
-  optionText: { ...typography.base, color: colors.textSecondary, flex: 1 },
-  optionTextActive: { color: colors.text, fontWeight: '600' },
-  rateRow: { flexDirection: 'row', alignItems: 'center', margin: spacing.md, borderWidth: 1.5, borderColor: colors.border, borderRadius: radius.md, overflow: 'hidden' },
-  rateInput: { flex: 1, padding: spacing.md, ...typography.lg, fontWeight: '600', color: colors.text },
-  rateCurrency: { paddingHorizontal: spacing.md, ...typography.base, color: colors.textSecondary, fontWeight: '600', backgroundColor: colors.bg },
-  switchRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: spacing.md },
-  switchLabel: { ...typography.base, color: colors.text },
-  saveBtn: { backgroundColor: colors.primary, borderRadius: radius.lg, paddingVertical: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, marginTop: spacing.sm },
-  saveBtnDone: { backgroundColor: colors.success },
-  saveBtnText: { color: '#fff', fontSize: 17, fontWeight: '700' },
+const st = StyleSheet.create({
+  container: { padding: spacing.md, gap: spacing.sm, paddingBottom: spacing.xl },
+  card: { borderRadius: radius.xl, overflow: 'hidden' },
+  themeRow: { flexDirection: 'row', padding: spacing.sm, gap: spacing.sm },
+  themeBtn: { flex: 1, alignItems: 'center', gap: spacing.xs, paddingVertical: spacing.md, borderRadius: radius.lg, borderWidth: 1.5 },
+  themeBtnText: { fontSize: 12, fontWeight: '700' },
+  pillRow: { flexDirection: 'row', flexWrap: 'wrap', padding: spacing.sm, gap: spacing.xs },
+  pill: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radius.md, borderWidth: 1.5 },
+  pillText: { fontSize: 13, fontWeight: '600' },
+  row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: spacing.md, paddingVertical: 14 },
+  rowText: { fontSize: 15 },
+  rateWrap: { flexDirection: 'row', margin: spacing.md, borderWidth: 1.5, borderRadius: radius.md, overflow: 'hidden' },
+  rateInput: { flex: 1, paddingHorizontal: spacing.md, paddingVertical: spacing.md, fontSize: 22, fontWeight: '600' },
+  rateUnit: { paddingHorizontal: spacing.md, justifyContent: 'center', borderLeftWidth: 1.5 },
+  rateUnitText: { fontSize: 15, fontWeight: '600' },
+  switchRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: spacing.md, paddingVertical: spacing.md },
+  switchLabel: { fontSize: 15, fontWeight: '500' },
+  switchSub: { fontSize: 12, marginTop: 2 },
+  saveBtn: { borderRadius: radius.xl, paddingVertical: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, marginTop: spacing.sm },
+  saveBtnText: { color: '#fff', fontSize: 17, fontWeight: '700', letterSpacing: 0.3 },
 });

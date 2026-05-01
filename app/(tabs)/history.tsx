@@ -6,10 +6,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { deleteSession, getSettings, getSessions } from '../../src/storage';
 import { calculateTax, formatCurrency, formatDuration, hoursToGross, msToHours } from '../../src/utils/tax';
 import { UserSettings, WorkSession } from '../../src/types';
-import { colors, radius, shadow, spacing, typography } from '../../src/styles/theme';
+import { useTheme } from '../../src/context/ThemeContext';
+import { radius, shadow, shadowSm, spacing } from '../../src/styles/theme';
 
 export default function HistoryScreen() {
   const { t } = useTranslation();
+  const { colors } = useTheme();
   const [sessions, setSessions] = useState<WorkSession[]>([]);
   const [settings, setSettings] = useState<UserSettings | null>(null);
 
@@ -29,52 +31,63 @@ export default function HistoryScreen() {
     ]);
   }
 
-  function renderItem({ item }: { item: WorkSession }) {
+  function renderItem({ item, index }: { item: WorkSession; index: number }) {
     const hours = msToHours(item.durationMs);
     const gross = settings ? hoursToGross(hours, settings.hourlyRate) : 0;
     const breakdown = settings ? calculateTax(gross, settings) : null;
     const date = new Date(item.startTime);
+    const isToday = new Date().toDateString() === date.toDateString();
 
     return (
-      <View style={styles.card}>
-        <View style={styles.cardTop}>
-          <View style={styles.dateBlock}>
-            <Text style={styles.dayNum}>{date.getDate()}</Text>
-            <View>
-              <Text style={styles.monthYear}>{date.toLocaleString('default', { month: 'short', year: 'numeric' })}</Text>
-              <Text style={styles.time}>{date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</Text>
-            </View>
+      <View style={[st.card, { backgroundColor: colors.surface, ...shadowSm(colors.shadow) }]}>
+        <View style={st.cardTop}>
+          <View style={[st.datePill, { backgroundColor: isToday ? colors.primaryLight : colors.surface2 }]}>
+            <Text style={[st.dateDay, { color: isToday ? colors.primary : colors.textSec }]}>
+              {date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
+            </Text>
+            <Text style={[st.dateTime, { color: colors.textMuted }]}>
+              {date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            </Text>
           </View>
-          <TouchableOpacity onPress={() => handleDelete(item.id)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-            <Ionicons name="trash-outline" size={18} color={colors.textMuted} />
+          <TouchableOpacity onPress={() => handleDelete(item.id)} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+            <Ionicons name="trash-outline" size={17} color={colors.textMuted} />
           </TouchableOpacity>
         </View>
 
-        {item.note && <Text style={styles.note}>{item.note}</Text>}
-        {item.manualEntry && (
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>{t('history.manualBadge')}</Text>
+        <View style={st.cardMain}>
+          <Text style={[st.duration, { color: colors.text }]}>{formatDuration(item.durationMs)}</Text>
+          <View style={st.earningsCol}>
+            {breakdown && (
+              <>
+                <Text style={[st.netAmount, { color: colors.primary }]}>{formatCurrency(breakdown.net, settings!.currency)}</Text>
+                <Text style={[st.grossAmount, { color: colors.textMuted }]}>{formatCurrency(breakdown.gross, settings!.currency)} gross</Text>
+              </>
+            )}
+          </View>
+        </View>
+
+        {(item.note || item.manualEntry) && (
+          <View style={st.cardFooter}>
+            {item.manualEntry && (
+              <View style={[st.badge, { backgroundColor: colors.primaryLight }]}>
+                <Text style={[st.badgeText, { color: colors.primary }]}>{t('history.manualBadge')}</Text>
+              </View>
+            )}
+            {item.note && <Text style={[st.note, { color: colors.textSec }]}>{item.note}</Text>}
           </View>
         )}
-
-        <View style={styles.cardBottom}>
-          <Text style={styles.duration}>{formatDuration(item.durationMs)}</Text>
-          {breakdown && (
-            <View style={styles.earnings}>
-              <Text style={styles.earningsGross}>{formatCurrency(breakdown.gross, settings!.currency)}</Text>
-              <Text style={styles.earningsNet}>{formatCurrency(breakdown.net, settings!.currency)} {t('timer.net')}</Text>
-            </View>
-          )}
-        </View>
       </View>
     );
   }
 
   if (sessions.length === 0) {
     return (
-      <View style={styles.empty}>
-        <Ionicons name="time-outline" size={56} color={colors.textMuted} />
-        <Text style={styles.emptyText}>{t('history.empty')}</Text>
+      <View style={[st.empty, { backgroundColor: colors.bg }]}>
+        <View style={[st.emptyIcon, { backgroundColor: colors.surface2 }]}>
+          <Ionicons name="time-outline" size={40} color={colors.textMuted} />
+        </View>
+        <Text style={[st.emptyTitle, { color: colors.text }]}>{t('history.title')}</Text>
+        <Text style={[st.emptySubtitle, { color: colors.textSec }]}>{t('history.empty')}</Text>
       </View>
     );
   }
@@ -84,29 +97,30 @@ export default function HistoryScreen() {
       data={sessions}
       keyExtractor={(item) => item.id}
       renderItem={renderItem}
-      contentContainerStyle={styles.list}
-      style={styles.root}
+      contentContainerStyle={[st.list, { backgroundColor: colors.bg }]}
+      style={{ backgroundColor: colors.bg }}
     />
   );
 }
 
-const styles = StyleSheet.create({
-  root: { backgroundColor: colors.bg },
-  list: { padding: spacing.md, gap: spacing.sm },
-  empty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.md, backgroundColor: colors.bg, padding: spacing.xl },
-  emptyText: { ...typography.base, color: colors.textSecondary, textAlign: 'center', lineHeight: 24 },
-  card: { backgroundColor: colors.card, borderRadius: radius.lg, padding: spacing.md, gap: spacing.sm, ...shadow.sm },
+const st = StyleSheet.create({
+  list: { padding: spacing.md, gap: spacing.sm, paddingBottom: spacing.xl },
+  empty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.md, padding: spacing.xl },
+  emptyIcon: { width: 80, height: 80, borderRadius: 40, alignItems: 'center', justifyContent: 'center' },
+  emptyTitle: { fontSize: 20, fontWeight: '700' },
+  emptySubtitle: { fontSize: 15, textAlign: 'center', lineHeight: 22 },
+  card: { borderRadius: radius.xl, padding: spacing.md, gap: spacing.sm },
   cardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-  dateBlock: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  dayNum: { fontSize: 32, fontWeight: '200', color: colors.text, lineHeight: 36 },
-  monthYear: { ...typography.sm, color: colors.textSecondary, fontWeight: '500' },
-  time: { ...typography.xs, color: colors.textMuted },
-  note: { ...typography.sm, color: colors.textSecondary, fontStyle: 'italic' },
-  badge: { alignSelf: 'flex-start', backgroundColor: colors.primaryLight, paddingHorizontal: spacing.sm, paddingVertical: 2, borderRadius: radius.sm },
-  badgeText: { ...typography.xs, color: colors.primary, fontWeight: '700' },
-  cardBottom: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: spacing.xs },
-  duration: { fontSize: 28, fontWeight: '300', color: colors.text, fontVariant: ['tabular-nums'] },
-  earnings: { alignItems: 'flex-end' },
-  earningsGross: { ...typography.sm, color: colors.textSecondary },
-  earningsNet: { ...typography.md, fontWeight: '700', color: colors.primary },
+  datePill: { borderRadius: radius.md, paddingHorizontal: spacing.sm, paddingVertical: spacing.xs },
+  dateDay: { fontSize: 14, fontWeight: '700' },
+  dateTime: { fontSize: 12, marginTop: 1 },
+  cardMain: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' },
+  duration: { fontSize: 34, fontWeight: '200', fontVariant: ['tabular-nums'], letterSpacing: 0.5 },
+  earningsCol: { alignItems: 'flex-end', gap: 2 },
+  netAmount: { fontSize: 20, fontWeight: '800', fontVariant: ['tabular-nums'] },
+  grossAmount: { fontSize: 12, fontVariant: ['tabular-nums'] },
+  cardFooter: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flexWrap: 'wrap' },
+  badge: { paddingHorizontal: spacing.sm, paddingVertical: 3, borderRadius: radius.sm },
+  badgeText: { fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 },
+  note: { fontSize: 13, fontStyle: 'italic' },
 });
