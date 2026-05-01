@@ -41,9 +41,9 @@ export default function SettingsScreen() {
   useFocusEffect(
     useCallback(() => {
       return () => {
-        i18nCtx.changeLanguage(persistedLanguage.current);
+        i18n.changeLanguage(persistedLanguage.current);
       };
-    }, [i18nCtx])
+    }, [])
   );
 
   function update<K extends keyof UserSettings>(key: K, value: UserSettings[K]) {
