@@ -32,7 +32,9 @@ export default function TimerScreen() {
   const [showManual, setShowManual] = useState(false);
   const [manualHours, setManualHours] = useState('');
   const [manualNote, setManualNote] = useState('');
+  const [savedSummary, setSavedSummary] = useState<{ durationMs: number; gross: number; net: number; currency: string } | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const summarySlide = useRef(new Animated.Value(300)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const fadeIn = useRef(new Animated.Value(0)).current;
 
@@ -73,20 +75,36 @@ export default function TimerScreen() {
     setRunning(true);
   }
 
+  function showSummary(durationMs: number, gross: number, net: number, currency: string) {
+    setSavedSummary({ durationMs, gross, net, currency });
+    summarySlide.setValue(300);
+    Animated.spring(summarySlide, { toValue: 0, useNativeDriver: true, tension: 60, friction: 10 }).start();
+  }
+
+  function dismissSummary() {
+    Animated.timing(summarySlide, { toValue: 300, duration: 220, useNativeDriver: true }).start(() => setSavedSummary(null));
+  }
+
   async function handleStop() {
     if (!startTime || !settings) return;
     const endTime = Date.now();
-    await saveSession({ id: String(endTime), startTime, endTime, durationMs: endTime - startTime });
+    const durationMs = endTime - startTime;
+    await saveSession({ id: String(endTime), startTime, endTime, durationMs });
     await clearActiveSession();
+    const bd = calculateTax(hoursToGross(msToHours(durationMs), settings.hourlyRate), settings);
     setRunning(false); setStartTime(null); setElapsed(0);
+    showSummary(durationMs, bd.gross, bd.net, settings.currency);
   }
 
   async function handleSaveManual() {
     const hours = parseFloat(manualHours.replace(',', '.'));
-    if (isNaN(hours) || hours <= 0) return;
+    if (isNaN(hours) || hours <= 0 || !settings) return;
     const now = Date.now();
-    await saveSession({ id: String(now), startTime: now - hours * 3600000, endTime: now, durationMs: hours * 3600000, note: manualNote || undefined, manualEntry: true });
+    const durationMs = hours * 3600000;
+    await saveSession({ id: String(now), startTime: now - durationMs, endTime: now, durationMs, note: manualNote || undefined, manualEntry: true });
+    const bd = calculateTax(hoursToGross(hours, settings.hourlyRate), settings);
     setShowManual(false); setManualHours(''); setManualNote('');
+    showSummary(durationMs, bd.gross, bd.net, settings.currency);
   }
 
   const hours = msToHours(elapsed);
@@ -161,6 +179,37 @@ export default function TimerScreen() {
         </View>
       </ScrollView>
 
+      {/* ── Session saved summary ── */}
+      {savedSummary && (
+        <View style={st.summaryOverlay} pointerEvents="box-none">
+          <TouchableOpacity style={st.summaryBackdrop} activeOpacity={1} onPress={dismissSummary} />
+          <Animated.View style={[st.summarySheet, { backgroundColor: colors.surface, transform: [{ translateY: summarySlide }] }]}>
+            <View style={[st.sheetHandle, { backgroundColor: colors.border }]} />
+            <View style={[st.summaryCheck, { backgroundColor: colors.successLight }]}>
+              <Ionicons name="checkmark-circle" size={36} color={colors.success} />
+            </View>
+            <Text style={[st.summaryTitle, { color: colors.text }]}>Session saved</Text>
+            <Text style={[st.summaryDuration, { color: colors.textSec }]}>{formatDuration(savedSummary.durationMs)}</Text>
+            <View style={[st.summaryEarnings, { backgroundColor: colors.surface2, borderRadius: radius.lg }]}>
+              <View style={st.summaryEarningsItem}>
+                <Text style={[st.summaryEarningsLabel, { color: colors.textMuted }]}>GROSS</Text>
+                <Text style={[st.summaryEarningsValue, { color: colors.textSec }]}>{formatCurrency(savedSummary.gross, savedSummary.currency)}</Text>
+              </View>
+              <View style={[st.earningsSep, { backgroundColor: colors.border }]} />
+              <View style={st.summaryEarningsItem}>
+                <Text style={[st.summaryEarningsLabel, { color: colors.textMuted }]}>NET</Text>
+                <Text style={[st.summaryEarningsValue, { color: colors.primary }]}>{formatCurrency(savedSummary.net, savedSummary.currency)}</Text>
+              </View>
+            </View>
+            <TouchableOpacity onPress={dismissSummary} activeOpacity={0.88} style={st.btnWrap}>
+              <LinearGradient colors={colors.primaryGrad} style={st.mainBtn} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+                <Text style={st.mainBtnText}>Done</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </Animated.View>
+        </View>
+      )}
+
       <Modal visible={showManual} transparent animationType="slide">
         <View style={st.overlay}>
           <View style={s.sheet}>
@@ -211,4 +260,14 @@ const st = StyleSheet.create({
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   sheetHandle: { width: 36, height: 4, borderRadius: 2, alignSelf: 'center', marginBottom: spacing.sm },
   sheetTitle: { fontSize: 20, fontWeight: '700' },
+  summaryOverlay: { ...StyleSheet.absoluteFillObject, justifyContent: 'flex-end', zIndex: 100 },
+  summaryBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.45)' },
+  summarySheet: { borderTopLeftRadius: radius.xxl, borderTopRightRadius: radius.xxl, padding: spacing.lg, gap: spacing.md, alignItems: 'center' },
+  summaryCheck: { width: 72, height: 72, borderRadius: 36, alignItems: 'center', justifyContent: 'center' },
+  summaryTitle: { fontSize: 22, fontWeight: '800', letterSpacing: -0.3 },
+  summaryDuration: { fontSize: 44, fontWeight: '200', fontVariant: ['tabular-nums'], letterSpacing: 1 },
+  summaryEarnings: { flexDirection: 'row', width: '100%', padding: spacing.md },
+  summaryEarningsItem: { flex: 1, alignItems: 'center', gap: spacing.xs },
+  summaryEarningsLabel: { fontSize: 11, fontWeight: '700', letterSpacing: 0.8 },
+  summaryEarningsValue: { fontSize: 22, fontWeight: '700', fontVariant: ['tabular-nums'] },
 });
