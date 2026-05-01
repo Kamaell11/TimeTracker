@@ -1,12 +1,14 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { useFocusEffect } from 'expo-router';
+import { useCallback } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import i18n from '../../src/i18n';
 import { getSettings, saveSettings } from '../../src/storage';
-import { Country, Currency, EmploymentType, Language, UserSettings, COUNTRY_DEFAULTS, COUNTRY_EMPLOYMENT_TYPES } from '../../src/types';
+import { Country, Currency, Language, UserSettings, COUNTRY_DEFAULTS, COUNTRY_EMPLOYMENT_TYPES } from '../../src/types';
 import { useTheme } from '../../src/context/ThemeContext';
-import { radius, shadow, shadowSm, spacing } from '../../src/styles/theme';
+import { radius, shadowSm, spacing } from '../../src/styles/theme';
 
 const COUNTRIES: Country[] = ['PL', 'NO', 'UK', 'DE'];
 const CURRENCIES: Currency[] = ['PLN', 'NOK', 'GBP', 'EUR', 'USD'];
@@ -26,11 +28,31 @@ export default function SettingsScreen() {
   const { colors, mode, setMode } = useTheme();
   const [settings, setSettings] = useState<UserSettings | null>(null);
   const [saved, setSaved] = useState(false);
+  const persistedLanguage = useRef<Language>('en');
 
-  useEffect(() => { getSettings().then(setSettings); }, []);
+  useEffect(() => {
+    getSettings().then((s) => {
+      setSettings(s);
+      persistedLanguage.current = s.language;
+    });
+  }, []);
+
+  // Revert language when leaving without saving
+  useFocusEffect(
+    useCallback(() => {
+      return () => {
+        i18n.changeLanguage(persistedLanguage.current);
+      };
+    }, [])
+  );
 
   function update<K extends keyof UserSettings>(key: K, value: UserSettings[K]) {
     setSettings((prev) => prev ? { ...prev, [key]: value } : prev);
+  }
+
+  function handleLanguageChange(lang: Language) {
+    update('language', lang);
+    i18n.changeLanguage(lang); // live preview
   }
 
   function handleCountryChange(country: Country) {
@@ -41,7 +63,8 @@ export default function SettingsScreen() {
   async function handleSave() {
     if (!settings) return;
     await saveSettings(settings);
-    await i18n.changeLanguage(settings.language);
+    persistedLanguage.current = settings.language;
+    i18n.changeLanguage(settings.language);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   }
@@ -73,7 +96,7 @@ export default function SettingsScreen() {
       <View style={[st.card, { backgroundColor: colors.surface, ...shadowSm(colors.shadow) }]}>
         <View style={st.pillRow}>
           {LANGUAGES.map((l) => (
-            <TouchableOpacity key={l.value} style={[st.pill, { borderColor: settings.language === l.value ? colors.primary : colors.border, backgroundColor: settings.language === l.value ? colors.primaryLight : 'transparent' }]} onPress={() => update('language', l.value)}>
+            <TouchableOpacity key={l.value} style={[st.pill, { borderColor: settings.language === l.value ? colors.primary : colors.border, backgroundColor: settings.language === l.value ? colors.primaryLight : 'transparent' }]} onPress={() => handleLanguageChange(l.value)}>
               <Text style={[st.pillText, { color: settings.language === l.value ? colors.primary : colors.textSec }]}>{l.label}</Text>
             </TouchableOpacity>
           ))}
