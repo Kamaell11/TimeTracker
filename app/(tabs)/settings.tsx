@@ -24,7 +24,7 @@ const THEME_MODES = [
 ] as const;
 
 export default function SettingsScreen() {
-  const { t } = useTranslation();
+  const { t, i18n: i18nCtx } = useTranslation();
   const { colors, mode, setMode } = useTheme();
   const [settings, setSettings] = useState<UserSettings | null>(null);
   const [saved, setSaved] = useState(false);
@@ -41,9 +41,9 @@ export default function SettingsScreen() {
   useFocusEffect(
     useCallback(() => {
       return () => {
-        i18n.changeLanguage(persistedLanguage.current);
+        i18nCtx.changeLanguage(persistedLanguage.current);
       };
-    }, [])
+    }, [i18nCtx])
   );
 
   function update<K extends keyof UserSettings>(key: K, value: UserSettings[K]) {
@@ -52,7 +52,7 @@ export default function SettingsScreen() {
 
   function handleLanguageChange(lang: Language) {
     update('language', lang);
-    i18n.changeLanguage(lang); // live preview
+    i18nCtx.changeLanguage(lang);
   }
 
   function handleCountryChange(country: Country) {
@@ -64,7 +64,7 @@ export default function SettingsScreen() {
     if (!settings) return;
     await saveSettings(settings);
     persistedLanguage.current = settings.language;
-    i18n.changeLanguage(settings.language);
+    i18nCtx.changeLanguage(settings.language);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   }
