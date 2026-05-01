@@ -1,8 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { useFocusEffect } from 'expo-router';
-import { useCallback } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import i18n from '../../src/i18n';
 import { getSettings, saveSettings } from '../../src/storage';
@@ -24,48 +22,36 @@ const THEME_MODES = [
 ] as const;
 
 export default function SettingsScreen() {
-  const { t, i18n: i18nCtx } = useTranslation();
+  const { t } = useTranslation();
   const { colors, mode, setMode } = useTheme();
   const [settings, setSettings] = useState<UserSettings | null>(null);
   const [saved, setSaved] = useState(false);
-  const persistedLanguage = useRef<Language>('en');
+  const [unsaved, setUnsaved] = useState(false);
 
-  useEffect(() => {
-    getSettings().then((s) => {
-      setSettings(s);
-      persistedLanguage.current = s.language;
-    });
-  }, []);
-
-  // Revert language when leaving without saving
-  useFocusEffect(
-    useCallback(() => {
-      return () => {
-        i18n.changeLanguage(persistedLanguage.current);
-      };
-    }, [])
-  );
+  useEffect(() => { getSettings().then(setSettings); }, []);
 
   function update<K extends keyof UserSettings>(key: K, value: UserSettings[K]) {
     setSettings((prev) => prev ? { ...prev, [key]: value } : prev);
+    setUnsaved(true);
   }
 
   function handleLanguageChange(lang: Language) {
     update('language', lang);
-    i18nCtx.changeLanguage(lang);
+    i18n.changeLanguage(lang);
   }
 
   function handleCountryChange(country: Country) {
     const d = COUNTRY_DEFAULTS[country];
     setSettings((prev) => prev ? { ...prev, country, employmentType: d.employmentType, currency: d.currency } : prev);
+    setUnsaved(true);
   }
 
   async function handleSave() {
     if (!settings) return;
     await saveSettings(settings);
-    persistedLanguage.current = settings.language;
-    i18nCtx.changeLanguage(settings.language);
+    i18n.changeLanguage(settings.language);
     setSaved(true);
+    setUnsaved(false);
     setTimeout(() => setSaved(false), 2000);
   }
 
@@ -202,6 +188,12 @@ export default function SettingsScreen() {
       )}
 
       {/* Save button */}
+      {unsaved && !saved && (
+        <View style={[st.unsavedBanner, { backgroundColor: colors.warningLight }]}>
+          <Ionicons name="alert-circle-outline" size={16} color={colors.warning} />
+          <Text style={[st.unsavedText, { color: colors.warning }]}>Unsaved changes</Text>
+        </View>
+      )}
       <TouchableOpacity style={[st.saveBtn, { backgroundColor: saved ? '#059669' : colors.primary }]} onPress={handleSave} activeOpacity={0.85}>
         <Ionicons name={saved ? 'checkmark-circle' : 'save-outline'} size={20} color="#fff" />
         <Text style={st.saveBtnText}>{saved ? t('settings.saved') : t('settings.save')}</Text>
@@ -238,4 +230,6 @@ const st = StyleSheet.create({
   switchSub: { fontSize: 12, marginTop: 2 },
   saveBtn: { borderRadius: radius.xl, paddingVertical: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, marginTop: spacing.sm },
   saveBtnText: { color: '#fff', fontSize: 17, fontWeight: '700', letterSpacing: 0.3 },
+  unsavedBanner: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, padding: spacing.sm, borderRadius: radius.md, marginTop: spacing.xs },
+  unsavedText: { fontSize: 13, fontWeight: '600' },
 });

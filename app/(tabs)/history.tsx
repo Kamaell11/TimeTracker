@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { Alert, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { FlatList, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
@@ -22,13 +22,18 @@ export default function HistoryScreen() {
   );
 
   async function handleDelete(id: string) {
-    Alert.alert(t('history.confirmDelete'), '', [
-      { text: t('common.no'), style: 'cancel' },
-      { text: t('common.yes'), style: 'destructive', onPress: async () => {
-        await deleteSession(id);
-        setSessions((prev) => prev.filter((s) => s.id !== id));
-      }},
-    ]);
+    const confirmed = Platform.OS === 'web'
+      ? window.confirm(t('history.confirmDelete'))
+      : await new Promise<boolean>((resolve) => {
+          const { Alert } = require('react-native');
+          Alert.alert(t('history.confirmDelete'), '', [
+            { text: t('common.no'), style: 'cancel', onPress: () => resolve(false) },
+            { text: t('common.yes'), style: 'destructive', onPress: () => resolve(true) },
+          ]);
+        });
+    if (!confirmed) return;
+    await deleteSession(id);
+    setSessions((prev) => prev.filter((s) => s.id !== id));
   }
 
   function renderItem({ item, index }: { item: WorkSession; index: number }) {
@@ -49,7 +54,7 @@ export default function HistoryScreen() {
               {date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
             </Text>
           </View>
-          <TouchableOpacity onPress={() => handleDelete(item.id)} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+          <TouchableOpacity onPress={() => handleDelete(item.id)} style={st.deleteBtn}>
             <Ionicons name="trash-outline" size={17} color={colors.textMuted} />
           </TouchableOpacity>
         </View>
@@ -111,6 +116,7 @@ const st = StyleSheet.create({
   emptySubtitle: { fontSize: 15, textAlign: 'center', lineHeight: 22 },
   card: { borderRadius: radius.xl, padding: spacing.md, gap: spacing.sm },
   cardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+  deleteBtn: { padding: 8 },
   datePill: { borderRadius: radius.md, paddingHorizontal: spacing.sm, paddingVertical: spacing.xs },
   dateDay: { fontSize: 14, fontWeight: '700' },
   dateTime: { fontSize: 12, marginTop: 1 },
