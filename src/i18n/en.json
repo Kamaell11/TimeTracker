@@ -1,0 +1,82 @@
+{
+  "tabs": {
+    "timer": "Timer",
+    "history": "History",
+    "summary": "Summary",
+    "settings": "Settings"
+  },
+  "timer": {
+    "start": "Start",
+    "stop": "Stop",
+    "elapsed": "Elapsed",
+    "estimated": "Estimated earnings",
+    "gross": "Gross",
+    "net": "Net",
+    "running": "Session in progress",
+    "addManual": "Add manual entry",
+    "manualHours": "Hours worked",
+    "manualNote": "Note (optional)",
+    "save": "Save",
+    "cancel": "Cancel"
+  },
+  "history": {
+    "title": "Work History",
+    "empty": "No sessions yet",
+    "delete": "Delete",
+    "hours": "h",
+    "manualBadge": "manual",
+    "confirmDelete": "Are you sure you want to delete this session?"
+  },
+  "summary": {
+    "title": "Summary",
+    "today": "Today",
+    "week": "This week",
+    "month": "This month",
+    "totalHours": "Total hours",
+    "totalGross": "Total gross",
+    "totalNet": "Total net",
+    "taxPaid": "Tax & ZUS",
+    "noData": "No data for this period"
+  },
+  "settings": {
+    "title": "Settings",
+    "employmentType": "Employment type",
+    "hourlyRate": "Hourly rate",
+    "currency": "Currency",
+    "language": "Language",
+    "b2bZus": "ZUS type",
+    "b2bZusPreferential": "Preferential (~400 PLN/mo)",
+    "b2bZusFull": "Full (~1773 PLN/mo)",
+    "lumpRate": "Lump sum tax rate",
+    "taxRelief": "Tax-free amount (30k/year)",
+    "save": "Save settings",
+    "saved": "Settings saved",
+    "employment_employment": "Employment contract",
+    "employment_contract": "Contract of mandate",
+    "employment_b2b_linear": "B2B – Linear tax (19%)",
+    "employment_b2b_scale": "B2B – Progressive scale",
+    "employment_b2b_lump": "B2B – Lump sum",
+    "currency_PLN": "PLN – Polish Złoty",
+    "currency_EUR": "EUR – Euro",
+    "currency_GBP": "GBP – British Pound",
+    "currency_USD": "USD – US Dollar"
+  },
+  "calculator": {
+    "title": "Quick Calculator",
+    "hours": "Hours",
+    "gross": "Gross",
+    "calculate": "Calculate",
+    "breakdown": "Tax breakdown",
+    "zusEmployee": "ZUS (employee)",
+    "health": "Health insurance",
+    "taxBase": "Tax base",
+    "incomeTax": "Income tax",
+    "net": "Net amount"
+  },
+  "common": {
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "yes": "Yes",
+    "no": "No"
+  }
+}

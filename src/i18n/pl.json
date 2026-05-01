@@ -1,0 +1,82 @@
+{
+  "tabs": {
+    "timer": "Timer",
+    "history": "Historia",
+    "summary": "Podsumowanie",
+    "settings": "Ustawienia"
+  },
+  "timer": {
+    "start": "Start",
+    "stop": "Stop",
+    "elapsed": "Czas pracy",
+    "estimated": "Szacowane zarobki",
+    "gross": "Brutto",
+    "net": "Netto",
+    "running": "Sesja w toku",
+    "addManual": "Dodaj wpis ręczny",
+    "manualHours": "Przepracowane godziny",
+    "manualNote": "Notatka (opcjonalnie)",
+    "save": "Zapisz",
+    "cancel": "Anuluj"
+  },
+  "history": {
+    "title": "Historia pracy",
+    "empty": "Brak zapisanych sesji",
+    "delete": "Usuń",
+    "hours": "h",
+    "manualBadge": "ręczny",
+    "confirmDelete": "Czy na pewno chcesz usunąć tę sesję?"
+  },
+  "summary": {
+    "title": "Podsumowanie",
+    "today": "Dziś",
+    "week": "Ten tydzień",
+    "month": "Ten miesiąc",
+    "totalHours": "Łączna liczba godzin",
+    "totalGross": "Łącznie brutto",
+    "totalNet": "Łącznie netto",
+    "taxPaid": "Podatek i ZUS",
+    "noData": "Brak danych za ten okres"
+  },
+  "settings": {
+    "title": "Ustawienia",
+    "employmentType": "Forma zatrudnienia",
+    "hourlyRate": "Stawka godzinowa",
+    "currency": "Waluta",
+    "language": "Język",
+    "b2bZus": "Rodzaj ZUS",
+    "b2bZusPreferential": "Preferencyjny (~400 zł/mies.)",
+    "b2bZusFull": "Pełny (~1773 zł/mies.)",
+    "lumpRate": "Stawka ryczałtu",
+    "taxRelief": "Kwota wolna od podatku (30k/rok)",
+    "save": "Zapisz ustawienia",
+    "saved": "Ustawienia zapisane",
+    "employment_employment": "Umowa o pracę",
+    "employment_contract": "Umowa zlecenie",
+    "employment_b2b_linear": "B2B – Podatek liniowy (19%)",
+    "employment_b2b_scale": "B2B – Skala podatkowa",
+    "employment_b2b_lump": "B2B – Ryczałt",
+    "currency_PLN": "PLN – Złoty polski",
+    "currency_EUR": "EUR – Euro",
+    "currency_GBP": "GBP – Funt brytyjski",
+    "currency_USD": "USD – Dolar amerykański"
+  },
+  "calculator": {
+    "title": "Szybki kalkulator",
+    "hours": "Godziny",
+    "gross": "Brutto",
+    "calculate": "Oblicz",
+    "breakdown": "Szczegóły podatku",
+    "zusEmployee": "ZUS (pracownik)",
+    "health": "Składka zdrowotna",
+    "taxBase": "Podstawa opodatkowania",
+    "incomeTax": "Podatek dochodowy",
+    "net": "Kwota netto"
+  },
+  "common": {
+    "cancel": "Anuluj",
+    "confirm": "Potwierdź",
+    "yes": "Tak",
+    "no": "Nie"
+  }
+}
