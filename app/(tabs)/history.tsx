@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { FlatList, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
@@ -22,16 +22,6 @@ export default function HistoryScreen() {
   );
 
   async function handleDelete(id: string) {
-    const confirmed = Platform.OS === 'web'
-      ? window.confirm(t('history.confirmDelete'))
-      : await new Promise<boolean>((resolve) => {
-          const { Alert } = require('react-native');
-          Alert.alert(t('history.confirmDelete'), '', [
-            { text: t('common.no'), style: 'cancel', onPress: () => resolve(false) },
-            { text: t('common.yes'), style: 'destructive', onPress: () => resolve(true) },
-          ]);
-        });
-    if (!confirmed) return;
     await deleteSession(id);
     setSessions((prev) => prev.filter((s) => s.id !== id));
   }

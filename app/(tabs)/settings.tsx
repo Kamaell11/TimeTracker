@@ -22,11 +22,12 @@ const THEME_MODES = [
 ] as const;
 
 export default function SettingsScreen() {
-  const { t } = useTranslation();
+  const { t, i18n: i18nHook } = useTranslation();
   const { colors, mode, setMode } = useTheme();
   const [settings, setSettings] = useState<UserSettings | null>(null);
   const [saved, setSaved] = useState(false);
   const [unsaved, setUnsaved] = useState(false);
+  const [, forceRerender] = useState(0);
 
   useEffect(() => { getSettings().then(setSettings); }, []);
 
@@ -37,7 +38,7 @@ export default function SettingsScreen() {
 
   function handleLanguageChange(lang: Language) {
     update('language', lang);
-    i18n.changeLanguage(lang);
+    i18nHook.changeLanguage(lang).then(() => forceRerender(n => n + 1));
   }
 
   function handleCountryChange(country: Country) {
@@ -49,7 +50,7 @@ export default function SettingsScreen() {
   async function handleSave() {
     if (!settings) return;
     await saveSettings(settings);
-    i18n.changeLanguage(settings.language);
+    await i18nHook.changeLanguage(settings.language);
     setSaved(true);
     setUnsaved(false);
     setTimeout(() => setSaved(false), 2000);
