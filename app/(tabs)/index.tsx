@@ -34,7 +34,6 @@ export default function TimerScreen() {
   const [manualNote, setManualNote] = useState('');
   const [savedSummary, setSavedSummary] = useState<{ durationMs: number; gross: number; net: number; currency: string } | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const summarySlide = useRef(new Animated.Value(300)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const fadeIn = useRef(new Animated.Value(0)).current;
 
@@ -77,12 +76,10 @@ export default function TimerScreen() {
 
   function showSummary(durationMs: number, gross: number, net: number, currency: string) {
     setSavedSummary({ durationMs, gross, net, currency });
-    summarySlide.setValue(300);
-    Animated.spring(summarySlide, { toValue: 0, useNativeDriver: true, tension: 60, friction: 10 }).start();
   }
 
   function dismissSummary() {
-    Animated.timing(summarySlide, { toValue: 300, duration: 220, useNativeDriver: true }).start(() => setSavedSummary(null));
+    setSavedSummary(null);
   }
 
   async function handleStop() {
@@ -180,36 +177,38 @@ export default function TimerScreen() {
       </ScrollView>
 
       {/* ── Session saved summary ── */}
-      <Modal visible={!!savedSummary} transparent animationType="none" onRequestClose={dismissSummary}>
-        <TouchableOpacity style={st.summaryBackdrop} activeOpacity={1} onPress={dismissSummary} />
-        <Animated.View style={[st.summarySheet, { backgroundColor: colors.surface, transform: [{ translateY: summarySlide }] }]}>
-          <View style={[st.sheetHandle, { backgroundColor: colors.border }]} />
-          <View style={[st.summaryCheck, { backgroundColor: colors.successLight }]}>
-            <Ionicons name="checkmark-circle" size={40} color={colors.success} />
+      <Modal visible={!!savedSummary} transparent animationType="slide" onRequestClose={dismissSummary}>
+        <View style={st.summaryOverlay}>
+          <TouchableOpacity style={StyleSheet.absoluteFillObject} activeOpacity={1} onPress={dismissSummary} />
+          <View style={[st.summarySheet, { backgroundColor: colors.surface }]}>
+            <View style={[st.sheetHandle, { backgroundColor: colors.border }]} />
+            <View style={[st.summaryCheck, { backgroundColor: colors.successLight }]}>
+              <Ionicons name="checkmark-circle" size={40} color={colors.success} />
+            </View>
+            <Text style={[st.summaryTitle, { color: colors.text }]}>Session saved</Text>
+            {savedSummary && (
+              <>
+                <Text style={[st.summaryDuration, { color: colors.textSec }]}>{formatDuration(savedSummary.durationMs)}</Text>
+                <View style={[st.summaryEarnings, { backgroundColor: colors.surface2, borderRadius: radius.lg }]}>
+                  <View style={st.summaryEarningsItem}>
+                    <Text style={[st.summaryEarningsLabel, { color: colors.textMuted }]}>GROSS</Text>
+                    <Text style={[st.summaryEarningsValue, { color: colors.textSec }]}>{formatCurrency(savedSummary.gross, savedSummary.currency)}</Text>
+                  </View>
+                  <View style={[st.earningsSep, { backgroundColor: colors.border }]} />
+                  <View style={st.summaryEarningsItem}>
+                    <Text style={[st.summaryEarningsLabel, { color: colors.textMuted }]}>NET</Text>
+                    <Text style={[st.summaryEarningsValue, { color: colors.primary }]}>{formatCurrency(savedSummary.net, savedSummary.currency)}</Text>
+                  </View>
+                </View>
+              </>
+            )}
+            <TouchableOpacity onPress={dismissSummary} activeOpacity={0.88} style={st.btnWrap}>
+              <LinearGradient colors={colors.primaryGrad} style={st.mainBtn} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+                <Text style={st.mainBtnText}>Done</Text>
+              </LinearGradient>
+            </TouchableOpacity>
           </View>
-          <Text style={[st.summaryTitle, { color: colors.text }]}>Session saved</Text>
-          {savedSummary && (
-            <>
-              <Text style={[st.summaryDuration, { color: colors.textSec }]}>{formatDuration(savedSummary.durationMs)}</Text>
-              <View style={[st.summaryEarnings, { backgroundColor: colors.surface2, borderRadius: radius.lg }]}>
-                <View style={st.summaryEarningsItem}>
-                  <Text style={[st.summaryEarningsLabel, { color: colors.textMuted }]}>GROSS</Text>
-                  <Text style={[st.summaryEarningsValue, { color: colors.textSec }]}>{formatCurrency(savedSummary.gross, savedSummary.currency)}</Text>
-                </View>
-                <View style={[st.earningsSep, { backgroundColor: colors.border }]} />
-                <View style={st.summaryEarningsItem}>
-                  <Text style={[st.summaryEarningsLabel, { color: colors.textMuted }]}>NET</Text>
-                  <Text style={[st.summaryEarningsValue, { color: colors.primary }]}>{formatCurrency(savedSummary.net, savedSummary.currency)}</Text>
-                </View>
-              </View>
-            </>
-          )}
-          <TouchableOpacity onPress={dismissSummary} activeOpacity={0.88} style={st.btnWrap}>
-            <LinearGradient colors={colors.primaryGrad} style={st.mainBtn} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
-              <Text style={st.mainBtnText}>Done</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-        </Animated.View>
+        </View>
       </Modal>
 
       <Modal visible={showManual} transparent animationType="slide">
@@ -262,7 +261,7 @@ const st = StyleSheet.create({
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   sheetHandle: { width: 36, height: 4, borderRadius: 2, alignSelf: 'center', marginBottom: spacing.sm },
   sheetTitle: { fontSize: 20, fontWeight: '700' },
-  summaryBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)' },
+  summaryOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.45)' },
   summarySheet: { borderTopLeftRadius: radius.xxl, borderTopRightRadius: radius.xxl, padding: spacing.lg, gap: spacing.md, alignItems: 'center' },
   summaryCheck: { width: 72, height: 72, borderRadius: 36, alignItems: 'center', justifyContent: 'center' },
   summaryTitle: { fontSize: 22, fontWeight: '800', letterSpacing: -0.3 },
