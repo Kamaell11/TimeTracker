@@ -8,7 +8,8 @@ const KEYS = {
 };
 
 const DEFAULT_SETTINGS: UserSettings = {
-  employmentType: 'employment',
+  country: 'PL',
+  employmentType: 'pl_employment',
   hourlyRate: 50,
   currency: 'PLN',
   language: 'en',
@@ -49,15 +50,13 @@ export async function saveSession(session: WorkSession): Promise<void> {
 
 export async function deleteSession(id: string): Promise<void> {
   const sessions = await getSessions();
-  const updated = sessions.filter((s) => s.id !== id);
-  await AsyncStorage.setItem(KEYS.SESSIONS, JSON.stringify(updated));
+  await AsyncStorage.setItem(KEYS.SESSIONS, JSON.stringify(sessions.filter((s) => s.id !== id)));
 }
 
 export async function getActiveSession(): Promise<{ startTime: number } | null> {
   try {
     const raw = await AsyncStorage.getItem(KEYS.ACTIVE_SESSION);
-    if (!raw) return null;
-    return JSON.parse(raw);
+    return raw ? JSON.parse(raw) : null;
   } catch {
     return null;
   }
