@@ -186,6 +186,52 @@ export default function SettingsScreen() {
         )}
       </View>
 
+      {/* Auto break */}
+      <SectionHeader title={t('settings.autoBreak')} colors={colors} />
+      <View style={[st.card, { backgroundColor: colors.surface, ...shadowSm(colors.shadow) }]}>
+        <View style={[st.switchRow, { borderBottomWidth: settings.autoBreakEnabled ? 1 : 0, borderBottomColor: colors.borderLight }]}>
+          <View style={{ flex: 1, paddingRight: spacing.md }}>
+            <Text style={[st.switchLabel, { color: colors.text }]}>{t('settings.autoBreak')}</Text>
+            <Text style={[st.switchSub, { color: colors.textMuted }]}>{t('settings.autoBreakSub')}</Text>
+          </View>
+          <Switch value={!!settings.autoBreakEnabled} onValueChange={(v) => update('autoBreakEnabled', v)} trackColor={{ true: colors.primary }} thumbColor="#fff" />
+        </View>
+        {settings.autoBreakEnabled && (
+          <>
+            <View style={[st.rateRow, { borderBottomWidth: 1, borderBottomColor: colors.borderLight }]}>
+              <Text style={[st.rateRowLabel, { color: colors.text }]}>{t('settings.autoBreakThreshold')}</Text>
+              <View style={[st.rateWrapInline, { borderColor: colors.border }]}>
+                <TextInput
+                  style={[st.rateInputSm, { color: colors.text }]}
+                  keyboardType="numeric"
+                  placeholder="6"
+                  placeholderTextColor={colors.textMuted}
+                  value={settings.autoBreakThresholdHours != null ? String(settings.autoBreakThresholdHours) : ''}
+                  onChangeText={(v) => update('autoBreakThresholdHours', parseFloat(v.replace(',', '.')) || 0)}
+                  selectionColor={colors.primary}
+                />
+                <Text style={[st.rateUnitText, { color: colors.textMuted, paddingRight: spacing.sm }]}>h</Text>
+              </View>
+            </View>
+            <View style={st.rateRow}>
+              <Text style={[st.rateRowLabel, { color: colors.text }]}>{t('settings.autoBreakDuration')}</Text>
+              <View style={[st.rateWrapInline, { borderColor: colors.border }]}>
+                <TextInput
+                  style={[st.rateInputSm, { color: colors.text }]}
+                  keyboardType="numeric"
+                  placeholder="30"
+                  placeholderTextColor={colors.textMuted}
+                  value={settings.autoBreakMinutes != null ? String(settings.autoBreakMinutes) : ''}
+                  onChangeText={(v) => update('autoBreakMinutes', parseInt(v) || 0)}
+                  selectionColor={colors.primary}
+                />
+                <Text style={[st.rateUnitText, { color: colors.textMuted, paddingRight: spacing.sm }]}>min</Text>
+              </View>
+            </View>
+          </>
+        )}
+      </View>
+
       {/* Norway holiday pay */}
       {showNoHoliday && (
         <>

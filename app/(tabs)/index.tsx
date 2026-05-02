@@ -17,7 +17,7 @@ import { useTranslation } from 'react-i18next';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { clearActiveSession, getActiveSession, getSettings, saveSession, setActiveSession } from '../../src/storage';
-import { calculateHolidayPay, calculateTax, formatCurrency, formatDuration, hoursToGross, msToHours } from '../../src/utils/tax';
+import { applyAutoBreak, calculateHolidayPay, calculateTax, formatCurrency, formatDuration, hoursToGross, msToHours } from '../../src/utils/tax';
 import { UserSettings } from '../../src/types';
 import { useTheme } from '../../src/context/ThemeContext';
 import { radius, shadow, spacing } from '../../src/styles/theme';
@@ -102,8 +102,10 @@ export default function TimerScreen() {
   async function handleStop() {
     if (!startTime || !settings) return;
     const endTime = Date.now();
-    const durationMs = endTime - startTime;
-    await saveSession({ id: String(endTime), startTime, endTime, durationMs, holidayMode: holidayMode && settings.country === 'NO' });
+    const rawDurationMs = endTime - startTime;
+    const isHoliday = holidayMode && settings.country === 'NO';
+    const durationMs = isHoliday ? rawDurationMs : applyAutoBreak(rawDurationMs, settings);
+    await saveSession({ id: String(endTime), startTime, endTime, durationMs, holidayMode: isHoliday });
     await clearActiveSession();
     const { gross, net } = resolveGrossAndNet(msToHours(durationMs), settings);
     setRunning(false);
@@ -116,9 +118,12 @@ export default function TimerScreen() {
     const hours = parseFloat(manualHours.replace(',', '.'));
     if (isNaN(hours) || hours <= 0 || !settings) return;
     const now = Date.now();
-    const durationMs = hours * 3600000;
-    await saveSession({ id: String(now), startTime: now - durationMs, endTime: now, durationMs, note: manualNote || undefined, manualEntry: true, holidayMode: holidayMode && settings.country === 'NO' });
-    const { gross, net } = resolveGrossAndNet(hours, settings);
+    const isHoliday = holidayMode && settings.country === 'NO';
+    const rawDurationMs = hours * 3600000;
+    const durationMs = isHoliday ? rawDurationMs : applyAutoBreak(rawDurationMs, settings);
+    const effectiveHours = msToHours(durationMs);
+    await saveSession({ id: String(now), startTime: now - rawDurationMs, endTime: now, durationMs, note: manualNote || undefined, manualEntry: true, holidayMode: isHoliday });
+    const { gross, net } = resolveGrossAndNet(effectiveHours, settings);
     setShowManual(false);
     setManualHours('');
     setManualNote('');

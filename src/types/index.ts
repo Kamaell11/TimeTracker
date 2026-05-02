@@ -30,6 +30,9 @@ export interface UserSettings {
   noBasicRate?: number;
   noHolidaySupplementPct?: number;
   noKongensTilleggHours?: number;
+  autoBreakEnabled?: boolean;
+  autoBreakThresholdHours?: number;
+  autoBreakMinutes?: number;
 }
 
 export interface WorkSession {

@@ -268,6 +268,13 @@ export function formatCurrency(amount: number, currency: string): string {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency, maximumFractionDigits: 2 }).format(amount);
 }
 
+export function applyAutoBreak(durationMs: number, settings: UserSettings): number {
+  if (!settings.autoBreakEnabled) return durationMs;
+  const thresholdMs = (settings.autoBreakThresholdHours ?? 6) * 3600000;
+  const breakMs = (settings.autoBreakMinutes ?? 30) * 60000;
+  return durationMs >= thresholdMs ? durationMs - breakMs : durationMs;
+}
+
 export function formatDuration(ms: number): string {
   const totalSeconds = Math.floor(ms / 1000);
   const hours = Math.floor(totalSeconds / 3600);
