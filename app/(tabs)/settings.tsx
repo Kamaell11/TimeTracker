@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Platform, ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import i18n from '../../src/i18n';
@@ -7,6 +7,7 @@ import { getSettings, saveSettings } from '../../src/storage';
 import { Country, Currency, Language, UserSettings, COUNTRY_DEFAULTS, COUNTRY_EMPLOYMENT_TYPES } from '../../src/types';
 import { useTheme } from '../../src/context/ThemeContext';
 import { radius, shadowSm, spacing } from '../../src/styles/theme';
+import { cancelAllReminders, requestNotificationPermission, scheduleDailyReminder } from '../../src/utils/notifications';
 
 const COUNTRIES: Country[] = ['PL', 'NO', 'UK', 'DE'];
 const CURRENCIES: Currency[] = ['PLN', 'NOK', 'GBP', 'EUR', 'USD'];
@@ -51,6 +52,16 @@ export default function SettingsScreen() {
     if (!settings) return;
     await saveSettings(settings);
     await i18nHook.changeLanguage(settings.language);
+    if (Platform.OS !== 'web') {
+      if (settings.reminderEnabled) {
+        const granted = await requestNotificationPermission();
+        if (granted) {
+          await scheduleDailyReminder(settings.reminderHour ?? 8, settings.reminderMinute ?? 0);
+        }
+      } else {
+        await cancelAllReminders();
+      }
+    }
     setSaved(true);
     setUnsaved(false);
     setTimeout(() => setSaved(false), 2000);
@@ -185,6 +196,56 @@ export default function SettingsScreen() {
           </View>
         )}
       </View>
+
+      {/* Daily reminder */}
+      {Platform.OS !== 'web' && (
+        <>
+          <SectionHeader title={t('settings.reminder')} colors={colors} />
+          <View style={[st.card, { backgroundColor: colors.surface, ...shadowSm(colors.shadow) }]}>
+            <View style={[st.switchRow, { borderBottomWidth: settings.reminderEnabled ? 1 : 0, borderBottomColor: colors.borderLight }]}>
+              <View style={{ flex: 1, paddingRight: spacing.md }}>
+                <Text style={[st.switchLabel, { color: colors.text }]}>{t('settings.reminder')}</Text>
+                <Text style={[st.switchSub, { color: colors.textMuted }]}>{t('settings.reminderSub')}</Text>
+              </View>
+              <Switch value={!!settings.reminderEnabled} onValueChange={(v) => update('reminderEnabled', v)} trackColor={{ true: colors.primary }} thumbColor="#fff" />
+            </View>
+            {settings.reminderEnabled && (
+              <View style={st.rateRow}>
+                <Text style={[st.rateRowLabel, { color: colors.text }]}>{t('settings.reminderTime')}</Text>
+                <View style={{ flexDirection: 'row', gap: spacing.xs, alignItems: 'center' }}>
+                  <View style={[st.rateWrapInline, { borderColor: colors.border }]}>
+                    <TextInput
+                      style={[st.rateInputSm, { color: colors.text }]}
+                      keyboardType="numeric"
+                      placeholder="8"
+                      placeholderTextColor={colors.textMuted}
+                      value={settings.reminderHour != null ? String(settings.reminderHour) : ''}
+                      onChangeText={(v) => update('reminderHour', parseInt(v) || 0)}
+                      selectionColor={colors.primary}
+                      maxLength={2}
+                    />
+                    <Text style={[st.rateUnitText, { color: colors.textMuted, paddingRight: spacing.sm }]}>h</Text>
+                  </View>
+                  <Text style={{ color: colors.textMuted, fontWeight: '700' }}>:</Text>
+                  <View style={[st.rateWrapInline, { borderColor: colors.border }]}>
+                    <TextInput
+                      style={[st.rateInputSm, { color: colors.text }]}
+                      keyboardType="numeric"
+                      placeholder="00"
+                      placeholderTextColor={colors.textMuted}
+                      value={settings.reminderMinute != null ? String(settings.reminderMinute).padStart(2, '0') : ''}
+                      onChangeText={(v) => update('reminderMinute', parseInt(v) || 0)}
+                      selectionColor={colors.primary}
+                      maxLength={2}
+                    />
+                    <Text style={[st.rateUnitText, { color: colors.textMuted, paddingRight: spacing.sm }]}>m</Text>
+                  </View>
+                </View>
+              </View>
+            )}
+          </View>
+        </>
+      )}
 
       {/* Auto break */}
       <SectionHeader title={t('settings.autoBreak')} colors={colors} />

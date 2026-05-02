@@ -33,6 +33,9 @@ export interface UserSettings {
   autoBreakEnabled?: boolean;
   autoBreakThresholdHours?: number;
   autoBreakMinutes?: number;
+  reminderEnabled?: boolean;
+  reminderHour?: number;
+  reminderMinute?: number;
 }
 
 export interface WorkSession {
