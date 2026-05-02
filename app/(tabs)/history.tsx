@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { FlatList, Platform, Share, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
@@ -8,6 +8,37 @@ import { calculateTax, formatCurrency, formatDuration, hoursToGross, msToHours }
 import { UserSettings, WorkSession } from '../../src/types';
 import { useTheme } from '../../src/context/ThemeContext';
 import { radius, shadow, shadowSm, spacing } from '../../src/styles/theme';
+
+function buildCsv(sessions: WorkSession[], settings: UserSettings): string {
+  const header = ['Date', 'Start', 'End', 'Duration (h)', 'Gross', 'Net', 'Currency', 'Holiday', 'Note'].join(',');
+  const rows = sessions.map((s) => {
+    const hours = msToHours(s.durationMs);
+    const bd = calculateTax(hoursToGross(hours, settings.hourlyRate), settings);
+    const date = new Date(s.startTime);
+    return [
+      date.toLocaleDateString('en-CA'),
+      new Date(s.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      new Date(s.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      hours.toFixed(2),
+      bd.gross.toFixed(2),
+      bd.net.toFixed(2),
+      settings.currency,
+      s.holidayMode ? 'yes' : 'no',
+      s.note ? `"${s.note.replace(/"/g, '""')}"` : '',
+    ].join(',');
+  });
+  return [header, ...rows].join('\n');
+}
+
+function downloadCsvWeb(csv: string) {
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `timetracker-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
 
 export default function HistoryScreen() {
   const { t } = useTranslation();
@@ -24,6 +55,16 @@ export default function HistoryScreen() {
   async function handleDelete(id: string) {
     await deleteSession(id);
     setSessions((prev) => prev.filter((s) => s.id !== id));
+  }
+
+  async function handleExport() {
+    if (!settings || sessions.length === 0) return;
+    const csv = buildCsv(sessions, settings);
+    if (Platform.OS === 'web') {
+      downloadCsvWeb(csv);
+    } else {
+      await Share.share({ message: csv, title: 'TimeTracker export' });
+    }
   }
 
   function renderItem({ item, index }: { item: WorkSession; index: number }) {
@@ -61,11 +102,16 @@ export default function HistoryScreen() {
           </View>
         </View>
 
-        {(item.note || item.manualEntry) && (
+        {(item.note || item.manualEntry || item.holidayMode) && (
           <View style={st.cardFooter}>
             {item.manualEntry && (
               <View style={[st.badge, { backgroundColor: colors.primaryLight }]}>
                 <Text style={[st.badgeText, { color: colors.primary }]}>{t('history.manualBadge')}</Text>
+              </View>
+            )}
+            {item.holidayMode && (
+              <View style={[st.badge, { backgroundColor: '#FEF3C7' }]}>
+                <Text style={[st.badgeText, { color: '#92400E' }]}>🎉 {t('history.holidayBadge')}</Text>
               </View>
             )}
             {item.note && <Text style={[st.note, { color: colors.textSec }]}>{item.note}</Text>}
@@ -94,6 +140,12 @@ export default function HistoryScreen() {
       renderItem={renderItem}
       contentContainerStyle={[st.list, { backgroundColor: colors.bg }]}
       style={{ backgroundColor: colors.bg }}
+      ListHeaderComponent={
+        <TouchableOpacity onPress={handleExport} style={[st.exportBtn, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <Ionicons name="download-outline" size={17} color={colors.primary} />
+          <Text style={[st.exportText, { color: colors.primary }]}>{t('history.exportCsv')}</Text>
+        </TouchableOpacity>
+      }
     />
   );
 }
@@ -119,4 +171,6 @@ const st = StyleSheet.create({
   badge: { paddingHorizontal: spacing.sm, paddingVertical: 3, borderRadius: radius.sm },
   badgeText: { fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 },
   note: { fontSize: 13, fontStyle: 'italic' },
+  exportBtn: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radius.lg, borderWidth: 1.5, alignSelf: 'flex-end', marginBottom: spacing.sm },
+  exportText: { fontSize: 13, fontWeight: '700' },
 });

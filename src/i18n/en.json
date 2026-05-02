@@ -31,7 +31,9 @@
     "delete": "Delete",
     "hours": "h",
     "manualBadge": "manual",
-    "confirmDelete": "Delete this session?"
+    "confirmDelete": "Delete this session?",
+    "exportCsv": "Export CSV",
+    "holidayBadge": "holiday"
   },
   "summary": {
     "title": "Summary",

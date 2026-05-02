@@ -31,7 +31,9 @@
     "delete": "Usuń",
     "hours": "h",
     "manualBadge": "ręczny",
-    "confirmDelete": "Usunąć tę sesję?"
+    "confirmDelete": "Usunąć tę sesję?",
+    "exportCsv": "Eksportuj CSV",
+    "holidayBadge": "świąteczne"
   },
   "summary": {
     "title": "Podsumowanie",
