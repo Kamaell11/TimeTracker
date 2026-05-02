@@ -18,7 +18,12 @@
     "manualNote": "Notatka (opcjonalnie)",
     "save": "Zapisz",
     "cancel": "Anuluj",
-    "noSettings": "Ustaw stawkę godzinową w Ustawieniach"
+    "noSettings": "Ustaw stawkę godzinową w Ustawieniach",
+    "holidayMode": "Tryb świąteczny",
+    "holidayModeSub": "100% dodatek + Kongens tillegg",
+    "regularPay": "Stawka podstawowa",
+    "holidaySupplement": "Dodatek świąteczny",
+    "breakDeduction": "Przerwa (30 min)"
   },
   "history": {
     "title": "Historia pracy",
@@ -54,6 +59,10 @@
     "customTax": "Własna stawka podatkowa",
     "customTaxSub": "Zastąp obliczany podatek własnym %",
     "customTaxPercent": "Stawka podatkowa (%)",
+    "noHoliday": "Wynagrodzenie świąteczne (Norwegia)",
+    "noBasicRate": "Stawka podstawowa (grunnlønn)",
+    "noSupplementPct": "Dodatek świąteczny",
+    "noKongensTillegg": "Kongens tillegg (h)",
     "save": "Zapisz ustawienia",
     "saved": "Zapisano",
     "country_PL": "🇵🇱 Polska",

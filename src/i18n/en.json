@@ -18,7 +18,12 @@
     "manualNote": "Note (optional)",
     "save": "Save",
     "cancel": "Cancel",
-    "noSettings": "Set up your hourly rate in Settings"
+    "noSettings": "Set up your hourly rate in Settings",
+    "holidayMode": "Holiday mode",
+    "holidayModeSub": "100% supplement + Kongens tillegg",
+    "regularPay": "Regular pay",
+    "holidaySupplement": "Holiday supplement",
+    "breakDeduction": "Break (30 min)"
   },
   "history": {
     "title": "Work History",
@@ -54,6 +59,10 @@
     "customTax": "Custom tax rate",
     "customTaxSub": "Override calculated tax with your own %",
     "customTaxPercent": "Tax rate (%)",
+    "noHoliday": "Holiday pay (Norway)",
+    "noBasicRate": "Basic rate (grunnlønn)",
+    "noSupplementPct": "Holiday supplement",
+    "noKongensTillegg": "Kongens tillegg (h)",
     "save": "Save settings",
     "saved": "Saved",
     "country_PL": "🇵🇱 Poland",

@@ -1,4 +1,4 @@
-import { TaxBreakdown, UserSettings } from '../types';
+import { Currency, TaxBreakdown, UserSettings } from '../types';
 
 // ─── Poland ───────────────────────────────────────────────────────────────────
 
@@ -230,6 +230,34 @@ export function calculateTax(gross: number, settings: UserSettings): TaxBreakdow
 
 export function hoursToGross(hours: number, hourlyRate: number): number {
   return hours * hourlyRate;
+}
+
+export interface HolidayPayBreakdown {
+  regularPay: number;
+  holidaySupplement: number;
+  kongensTillegg: number;
+  breakDeductionHours: number;
+  totalGross: number;
+  effectiveHours: number;
+}
+
+export function calculateHolidayPay(
+  workedHours: number,
+  fullRate: number,
+  basicRate: number,
+  supplementPct: number,
+  kongensTilleggHours: number,
+  breakThresholdHours = 12,
+  breakMinutes = 30,
+): HolidayPayBreakdown {
+  const breakDeductionHours = workedHours >= breakThresholdHours ? breakMinutes / 60 : 0;
+  const paidHours = workedHours - breakDeductionHours;
+  const regularPay = paidHours * fullRate;
+  const holidaySupplement = paidHours * basicRate * (supplementPct / 100);
+  const kongensTillegg = kongensTilleggHours * basicRate;
+  const totalGross = regularPay + holidaySupplement + kongensTillegg;
+  const effectiveHours = paidHours + (holidaySupplement + kongensTillegg) / fullRate;
+  return { regularPay, holidaySupplement, kongensTillegg, breakDeductionHours, totalGross, effectiveHours };
 }
 
 export function msToHours(ms: number): number {

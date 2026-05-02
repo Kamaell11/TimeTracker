@@ -27,6 +27,9 @@ export interface UserSettings {
   taxReliefEnabled?: boolean;
   useCustomTax?: boolean;
   customTaxPercent?: number;
+  noBasicRate?: number;
+  noHolidaySupplementPct?: number;
+  noKongensTilleggHours?: number;
 }
 
 export interface WorkSession {
@@ -36,6 +39,7 @@ export interface WorkSession {
   durationMs: number;
   note?: string;
   manualEntry?: boolean;
+  holidayMode?: boolean;
 }
 
 export interface TaxBreakdown {

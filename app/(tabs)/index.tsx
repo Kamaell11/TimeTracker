@@ -6,6 +6,7 @@ import {
   ScrollView,
   StatusBar,
   StyleSheet,
+  Switch,
   Text,
   TextInput,
   TouchableOpacity,
@@ -16,7 +17,7 @@ import { useTranslation } from 'react-i18next';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { clearActiveSession, getActiveSession, getSettings, saveSession, setActiveSession } from '../../src/storage';
-import { calculateTax, formatCurrency, formatDuration, hoursToGross, msToHours } from '../../src/utils/tax';
+import { calculateHolidayPay, calculateTax, formatCurrency, formatDuration, hoursToGross, msToHours } from '../../src/utils/tax';
 import { UserSettings } from '../../src/types';
 import { useTheme } from '../../src/context/ThemeContext';
 import { radius, shadow, spacing } from '../../src/styles/theme';
@@ -33,6 +34,7 @@ export default function TimerScreen() {
   const [showManual, setShowManual] = useState(false);
   const [manualHours, setManualHours] = useState('');
   const [manualNote, setManualNote] = useState('');
+  const [holidayMode, setHolidayMode] = useState(false);
   const [savedSummary, setSavedSummary] = useState<SavedSummary | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -81,17 +83,33 @@ export default function TimerScreen() {
     setRunning(true);
   }
 
+  function resolveGrossAndNet(hours: number, s: UserSettings): { gross: number; net: number } {
+    if (holidayMode && s.country === 'NO' && s.noBasicRate) {
+      const hp = calculateHolidayPay(
+        hours,
+        s.hourlyRate,
+        s.noBasicRate,
+        s.noHolidaySupplementPct ?? 100,
+        s.noKongensTilleggHours ?? 7.5,
+      );
+      const bd = calculateTax(hp.totalGross, s);
+      return { gross: hp.totalGross, net: bd.net };
+    }
+    const bd = calculateTax(hoursToGross(hours, s.hourlyRate), s);
+    return { gross: bd.gross, net: bd.net };
+  }
+
   async function handleStop() {
     if (!startTime || !settings) return;
     const endTime = Date.now();
     const durationMs = endTime - startTime;
-    await saveSession({ id: String(endTime), startTime, endTime, durationMs });
+    await saveSession({ id: String(endTime), startTime, endTime, durationMs, holidayMode: holidayMode && settings.country === 'NO' });
     await clearActiveSession();
-    const bd = calculateTax(hoursToGross(msToHours(durationMs), settings.hourlyRate), settings);
+    const { gross, net } = resolveGrossAndNet(msToHours(durationMs), settings);
     setRunning(false);
     setStartTime(null);
     setElapsed(0);
-    setSavedSummary({ durationMs, gross: bd.gross, net: bd.net, currency: settings.currency });
+    setSavedSummary({ durationMs, gross, net, currency: settings.currency });
   }
 
   async function handleSaveManual() {
@@ -99,16 +117,19 @@ export default function TimerScreen() {
     if (isNaN(hours) || hours <= 0 || !settings) return;
     const now = Date.now();
     const durationMs = hours * 3600000;
-    await saveSession({ id: String(now), startTime: now - durationMs, endTime: now, durationMs, note: manualNote || undefined, manualEntry: true });
-    const bd = calculateTax(hoursToGross(hours, settings.hourlyRate), settings);
+    await saveSession({ id: String(now), startTime: now - durationMs, endTime: now, durationMs, note: manualNote || undefined, manualEntry: true, holidayMode: holidayMode && settings.country === 'NO' });
+    const { gross, net } = resolveGrossAndNet(hours, settings);
     setShowManual(false);
     setManualHours('');
     setManualNote('');
-    setSavedSummary({ durationMs, gross: bd.gross, net: bd.net, currency: settings.currency });
+    setSavedSummary({ durationMs, gross, net, currency: settings.currency });
   }
 
   const hours = msToHours(elapsed);
-  const gross = settings ? hoursToGross(hours, settings.hourlyRate) : 0;
+  const liveHolidayPay = holidayMode && settings?.country === 'NO' && settings.noBasicRate && running
+    ? calculateHolidayPay(hours, settings.hourlyRate, settings.noBasicRate, settings.noHolidaySupplementPct ?? 100, settings.noKongensTilleggHours ?? 7.5)
+    : null;
+  const gross = liveHolidayPay ? liveHolidayPay.totalGross : settings ? hoursToGross(hours, settings.hourlyRate) : 0;
   const breakdown = settings && running ? calculateTax(gross, settings) : null;
 
   return (
@@ -183,6 +204,47 @@ export default function TimerScreen() {
             </View>
           )}
 
+          {/* Holiday mode toggle (Norway only) */}
+          {settings?.country === 'NO' && !running && (
+            <TouchableOpacity onPress={() => setHolidayMode(v => !v)} activeOpacity={0.85} style={[st.holidayRow, { backgroundColor: holidayMode ? '#FEF3C7' : colors.surface2, borderColor: holidayMode ? '#F59E0B' : colors.border }]}>
+              <View style={st.holidayLeft}>
+                <Text style={{ fontSize: 20 }}>🎉</Text>
+                <View>
+                  <Text style={[st.holidayLabel, { color: holidayMode ? '#92400E' : colors.text }]}>{t('timer.holidayMode')}</Text>
+                  <Text style={[st.holidaySub, { color: holidayMode ? '#B45309' : colors.textMuted }]}>{t('timer.holidayModeSub')}</Text>
+                </View>
+              </View>
+              <Switch value={holidayMode} onValueChange={setHolidayMode} trackColor={{ true: '#F59E0B' }} thumbColor="#fff" />
+            </TouchableOpacity>
+          )}
+
+          {/* Live holiday breakdown */}
+          {liveHolidayPay && running && (
+            <View style={[st.holidayBreakdown, { backgroundColor: '#FEF3C7', borderColor: '#F59E0B' }]}>
+              <Text style={[st.holidayBreakdownTitle, { color: '#92400E' }]}>🎉 {t('timer.holidayMode')}</Text>
+              <View style={st.holidayBreakdownRows}>
+                <View style={st.holidayBreakdownRow}>
+                  <Text style={{ color: '#78350F', fontSize: 12 }}>{t('timer.regularPay')}</Text>
+                  <Text style={{ color: '#78350F', fontSize: 12, fontWeight: '600' }}>{formatCurrency(liveHolidayPay.regularPay, settings!.currency)}</Text>
+                </View>
+                <View style={st.holidayBreakdownRow}>
+                  <Text style={{ color: '#78350F', fontSize: 12 }}>{t('timer.holidaySupplement')}</Text>
+                  <Text style={{ color: '#78350F', fontSize: 12, fontWeight: '600' }}>{formatCurrency(liveHolidayPay.holidaySupplement, settings!.currency)}</Text>
+                </View>
+                <View style={st.holidayBreakdownRow}>
+                  <Text style={{ color: '#78350F', fontSize: 12 }}>Kongens tillegg</Text>
+                  <Text style={{ color: '#78350F', fontSize: 12, fontWeight: '600' }}>{formatCurrency(liveHolidayPay.kongensTillegg, settings!.currency)}</Text>
+                </View>
+                {liveHolidayPay.breakDeductionHours > 0 && (
+                  <View style={st.holidayBreakdownRow}>
+                    <Text style={{ color: '#78350F', fontSize: 12 }}>{t('timer.breakDeduction')}</Text>
+                    <Text style={{ color: '#DC2626', fontSize: 12, fontWeight: '600' }}>−30 min</Text>
+                  </View>
+                )}
+              </View>
+            </View>
+          )}
+
           {/* Start / Stop button */}
           <TouchableOpacity onPress={running ? handleStop : handleStart} activeOpacity={0.88} style={st.btnWrap}>
             <LinearGradient
@@ -223,6 +285,15 @@ export default function TimerScreen() {
               value={manualNote}
               onChangeText={setManualNote}
             />
+            {settings?.country === 'NO' && (
+              <TouchableOpacity onPress={() => setHolidayMode(v => !v)} activeOpacity={0.85} style={[st.holidayRow, { backgroundColor: holidayMode ? '#FEF3C7' : colors.surface2, borderColor: holidayMode ? '#F59E0B' : colors.border }]}>
+                <View style={st.holidayLeft}>
+                  <Text style={{ fontSize: 18 }}>🎉</Text>
+                  <Text style={[st.holidayLabel, { color: holidayMode ? '#92400E' : colors.text }]}>{t('timer.holidayMode')}</Text>
+                </View>
+                <Switch value={holidayMode} onValueChange={setHolidayMode} trackColor={{ true: '#F59E0B' }} thumbColor="#fff" />
+              </TouchableOpacity>
+            )}
             <TouchableOpacity onPress={handleSaveManual} activeOpacity={0.88} style={st.btnWrap}>
               <LinearGradient colors={['#6366F1', '#8B5CF6']} style={st.mainBtn} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
                 <Text style={st.mainBtnText}>{t('timer.save')}</Text>
@@ -281,4 +352,12 @@ const st = StyleSheet.create({
   sheetHandle: { width: 36, height: 4, borderRadius: 2, alignSelf: 'center', marginBottom: spacing.sm },
   sheetTitle: { fontSize: 20, fontWeight: '700' },
   input: { borderWidth: 1.5, borderRadius: radius.md, padding: spacing.md, fontSize: 17 },
+  holidayRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: spacing.md, borderRadius: radius.lg, borderWidth: 1.5, gap: spacing.sm },
+  holidayLeft: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flex: 1 },
+  holidayLabel: { fontSize: 14, fontWeight: '600' },
+  holidaySub: { fontSize: 11, marginTop: 1 },
+  holidayBreakdown: { borderRadius: radius.lg, padding: spacing.md, gap: spacing.xs, borderWidth: 1.5 },
+  holidayBreakdownTitle: { fontSize: 13, fontWeight: '700', marginBottom: spacing.xs },
+  holidayBreakdownRows: { gap: 4 },
+  holidayBreakdownRow: { flexDirection: 'row', justifyContent: 'space-between' },
 });

@@ -61,6 +61,7 @@ export default function SettingsScreen() {
   const employmentTypes = COUNTRY_EMPLOYMENT_TYPES[settings.country];
   const showB2bOptions = ['pl_b2b_linear', 'pl_b2b_scale', 'pl_b2b_lump'].includes(settings.employmentType);
   const showTaxRelief = ['pl_employment', 'pl_b2b_scale'].includes(settings.employmentType);
+  const showNoHoliday = settings.country === 'NO';
 
   return (
     <ScrollView style={{ backgroundColor: colors.bg }} contentContainerStyle={[st.container, { backgroundColor: colors.bg }]}>
@@ -185,6 +186,60 @@ export default function SettingsScreen() {
         )}
       </View>
 
+      {/* Norway holiday pay */}
+      {showNoHoliday && (
+        <>
+          <SectionHeader title={t('settings.noHoliday')} colors={colors} />
+          <View style={[st.card, { backgroundColor: colors.surface, ...shadowSm(colors.shadow) }]}>
+            <View style={[st.rateRow, { borderBottomWidth: 1, borderBottomColor: colors.borderLight }]}>
+              <Text style={[st.rateRowLabel, { color: colors.text }]}>{t('settings.noBasicRate')}</Text>
+              <View style={[st.rateWrapInline, { borderColor: colors.border }]}>
+                <TextInput
+                  style={[st.rateInputSm, { color: colors.text }]}
+                  keyboardType="numeric"
+                  placeholder="0"
+                  placeholderTextColor={colors.textMuted}
+                  value={settings.noBasicRate != null ? String(settings.noBasicRate) : ''}
+                  onChangeText={(v) => update('noBasicRate', parseFloat(v.replace(',', '.')) || 0)}
+                  selectionColor={colors.primary}
+                />
+                <Text style={[st.rateUnitText, { color: colors.textMuted, paddingRight: spacing.sm }]}>{settings.currency}/h</Text>
+              </View>
+            </View>
+            <View style={[st.rateRow, { borderBottomWidth: 1, borderBottomColor: colors.borderLight }]}>
+              <Text style={[st.rateRowLabel, { color: colors.text }]}>{t('settings.noSupplementPct')}</Text>
+              <View style={[st.rateWrapInline, { borderColor: colors.border }]}>
+                <TextInput
+                  style={[st.rateInputSm, { color: colors.text }]}
+                  keyboardType="numeric"
+                  placeholder="100"
+                  placeholderTextColor={colors.textMuted}
+                  value={settings.noHolidaySupplementPct != null ? String(settings.noHolidaySupplementPct) : ''}
+                  onChangeText={(v) => update('noHolidaySupplementPct', parseFloat(v.replace(',', '.')) || 0)}
+                  selectionColor={colors.primary}
+                />
+                <Text style={[st.rateUnitText, { color: colors.textMuted, paddingRight: spacing.sm }]}>%</Text>
+              </View>
+            </View>
+            <View style={st.rateRow}>
+              <Text style={[st.rateRowLabel, { color: colors.text }]}>{t('settings.noKongensTillegg')}</Text>
+              <View style={[st.rateWrapInline, { borderColor: colors.border }]}>
+                <TextInput
+                  style={[st.rateInputSm, { color: colors.text }]}
+                  keyboardType="numeric"
+                  placeholder="7.5"
+                  placeholderTextColor={colors.textMuted}
+                  value={settings.noKongensTilleggHours != null ? String(settings.noKongensTilleggHours) : ''}
+                  onChangeText={(v) => update('noKongensTilleggHours', parseFloat(v.replace(',', '.')) || 0)}
+                  selectionColor={colors.primary}
+                />
+                <Text style={[st.rateUnitText, { color: colors.textMuted, paddingRight: spacing.sm }]}>h</Text>
+              </View>
+            </View>
+          </View>
+        </>
+      )}
+
       {/* B2B ZUS */}
       {showB2bOptions && (
         <>
@@ -261,4 +316,8 @@ const st = StyleSheet.create({
   saveBtnText: { color: '#fff', fontSize: 17, fontWeight: '700', letterSpacing: 0.3 },
   unsavedBanner: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, padding: spacing.sm, borderRadius: radius.md, marginTop: spacing.xs },
   unsavedText: { fontSize: 13, fontWeight: '600' },
+  rateRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
+  rateRowLabel: { fontSize: 14, fontWeight: '500', flex: 1 },
+  rateWrapInline: { flexDirection: 'row', alignItems: 'center', borderWidth: 1.5, borderRadius: radius.md, overflow: 'hidden', minWidth: 100 },
+  rateInputSm: { flex: 1, paddingHorizontal: spacing.sm, paddingVertical: spacing.sm, fontSize: 15, fontWeight: '600', textAlign: 'right', minWidth: 60 },
 });
