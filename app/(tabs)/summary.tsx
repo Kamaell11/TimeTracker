@@ -22,6 +22,70 @@ function startOf(period: Period): number {
   return new Date(now.getFullYear(), now.getMonth(), 1).getTime();
 }
 
+interface BarItem {
+  label: string;
+  hours: number;
+}
+
+function buildDailyBars(sessions: WorkSession[], period: Period): BarItem[] {
+  if (period === 'today') return [];
+  const now = new Date();
+  const bars: BarItem[] = [];
+
+  if (period === 'week') {
+    for (let i = 0; i < 7; i++) {
+      const day = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (now.getDay() || 7) + 1 + i);
+      const dayStart = day.getTime();
+      const dayEnd = dayStart + 86400000;
+      const hours = sessions
+        .filter((s) => s.startTime >= dayStart && s.startTime < dayEnd)
+        .reduce((acc, s) => acc + msToHours(s.durationMs), 0);
+      bars.push({ label: day.toLocaleDateString(undefined, { weekday: 'short' }), hours });
+    }
+  } else {
+    const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    const weeksCount = Math.ceil(daysInMonth / 7);
+    for (let w = 0; w < weeksCount; w++) {
+      const weekStart = new Date(now.getFullYear(), now.getMonth(), w * 7 + 1).getTime();
+      const weekEnd = new Date(now.getFullYear(), now.getMonth(), Math.min((w + 1) * 7 + 1, daysInMonth + 1)).getTime();
+      const hours = sessions
+        .filter((s) => s.startTime >= weekStart && s.startTime < weekEnd)
+        .reduce((acc, s) => acc + msToHours(s.durationMs), 0);
+      bars.push({ label: `W${w + 1}`, hours });
+    }
+  }
+  return bars;
+}
+
+function BarChart({ bars, color }: { bars: BarItem[]; color: string }) {
+  const max = Math.max(...bars.map((b) => b.hours), 0.1);
+  const { colors } = useTheme();
+  return (
+    <View style={bc.wrap}>
+      {bars.map((bar, i) => (
+        <View key={i} style={bc.col}>
+          <Text style={[bc.val, { color: colors.textMuted }]}>{bar.hours > 0 ? bar.hours.toFixed(1) : ''}</Text>
+          <View style={bc.barTrack}>
+            <View
+              style={[bc.bar, { height: `${Math.max((bar.hours / max) * 100, bar.hours > 0 ? 4 : 0)}%`, backgroundColor: color }]}
+            />
+          </View>
+          <Text style={[bc.label, { color: colors.textMuted }]}>{bar.label}</Text>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+const bc = StyleSheet.create({
+  wrap: { flexDirection: 'row', alignItems: 'flex-end', height: 120, gap: 4, paddingTop: spacing.sm },
+  col: { flex: 1, alignItems: 'center', gap: 3 },
+  barTrack: { flex: 1, width: '70%', justifyContent: 'flex-end' },
+  bar: { width: '100%', borderRadius: 4, minHeight: 0 },
+  val: { fontSize: 9, fontWeight: '600' },
+  label: { fontSize: 9, fontWeight: '600' },
+});
+
 export default function SummaryScreen() {
   const { t } = useTranslation();
   const { colors } = useTheme();
@@ -41,6 +105,7 @@ export default function SummaryScreen() {
   const totalGross = settings ? hoursToGross(totalHours, settings.hourlyRate) : 0;
   const breakdown = settings ? calculateTax(totalGross, settings) : null;
   const totalDeductions = breakdown ? breakdown.socialContributions + breakdown.healthInsurance + breakdown.incomeTax : 0;
+  const bars = buildDailyBars(filtered, period);
 
   const periods: { key: Period; label: string }[] = [
     { key: 'today', label: t('summary.today') },
@@ -74,6 +139,16 @@ export default function SummaryScreen() {
             <Text style={st.sessionCount}>{filtered.length} session{filtered.length !== 1 ? 's' : ''}</Text>
             <View style={st.hoursDecor} />
           </LinearGradient>
+
+          {/* Bar chart */}
+          {bars.length > 0 && (
+            <View style={[st.chartCard, { backgroundColor: colors.surface, ...shadowSm(colors.shadow) }]}>
+              <Text style={[st.chartTitle, { color: colors.textMuted }]}>
+                {period === 'week' ? t('summary.chartDays') : t('summary.chartWeeks')}
+              </Text>
+              <BarChart bars={bars} color={colors.primary} />
+            </View>
+          )}
 
           {/* Gross / Tax row */}
           {breakdown && (
@@ -130,6 +205,8 @@ const st = StyleSheet.create({
   hoursUnit: { fontSize: 28, fontWeight: '300' },
   sessionCount: { color: 'rgba(255,255,255,0.55)', fontSize: 13, marginTop: spacing.xs },
   hoursDecor: { position: 'absolute', right: -20, top: -20, width: 120, height: 120, borderRadius: 60, backgroundColor: 'rgba(255,255,255,0.06)' },
+  chartCard: { borderRadius: radius.xl, padding: spacing.md },
+  chartTitle: { fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1 },
   row: { flexDirection: 'row', gap: spacing.md },
   statCard: { flex: 1, borderRadius: radius.xl, padding: spacing.md, gap: spacing.sm },
   statIcon: { width: 36, height: 36, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' },

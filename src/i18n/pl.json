@@ -44,7 +44,9 @@
     "totalGross": "Brutto",
     "totalNet": "Netto",
     "taxPaid": "Podatki i składki",
-    "noData": "Brak sesji w tym okresie"
+    "noData": "Brak sesji w tym okresie",
+    "chartDays": "Godziny dziennie",
+    "chartWeeks": "Godziny tygodniowo"
   },
   "settings": {
     "title": "Ustawienia",

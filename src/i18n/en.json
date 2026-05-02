@@ -44,7 +44,9 @@
     "totalGross": "Gross",
     "totalNet": "Net",
     "taxPaid": "Tax & Social",
-    "noData": "No sessions in this period"
+    "noData": "No sessions in this period",
+    "chartDays": "Hours per day",
+    "chartWeeks": "Hours per week"
   },
   "settings": {
     "title": "Settings",
