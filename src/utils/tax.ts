@@ -199,7 +199,19 @@ function calcDeEmployee(gross: number): TaxBreakdown {
 
 // ─── Router ───────────────────────────────────────────────────────────────────
 
+function calcCustomTax(gross: number, taxPercent: number, currency: Currency): TaxBreakdown {
+  const incomeTax = gross * (taxPercent / 100);
+  return {
+    gross, socialContributions: 0, healthInsurance: 0,
+    taxBase: gross, incomeTax,
+    net: gross - incomeTax, currency,
+  };
+}
+
 export function calculateTax(gross: number, settings: UserSettings): TaxBreakdown {
+  if (settings.useCustomTax && settings.customTaxPercent != null) {
+    return calcCustomTax(gross, settings.customTaxPercent, settings.currency);
+  }
   const { employmentType, b2bZusType = 'full', b2bLumpRate = 0.12, taxReliefEnabled = true } = settings;
   switch (employmentType) {
     case 'pl_employment': return calcPlEmployment(gross, taxReliefEnabled);

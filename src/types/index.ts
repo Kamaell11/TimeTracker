@@ -25,6 +25,8 @@ export interface UserSettings {
   b2bZusType?: 'preferential' | 'full';
   b2bLumpRate?: number;
   taxReliefEnabled?: boolean;
+  useCustomTax?: boolean;
+  customTaxPercent?: number;
 }
 
 export interface WorkSession {

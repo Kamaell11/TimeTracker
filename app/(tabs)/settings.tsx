@@ -157,6 +157,34 @@ export default function SettingsScreen() {
         </>
       )}
 
+      {/* Custom tax */}
+      <SectionHeader title={t('settings.customTax')} colors={colors} />
+      <View style={[st.card, { backgroundColor: colors.surface, ...shadowSm(colors.shadow) }]}>
+        <View style={[st.switchRow, { borderBottomWidth: 1, borderBottomColor: colors.borderLight }]}>
+          <View style={{ flex: 1, paddingRight: spacing.md }}>
+            <Text style={[st.switchLabel, { color: colors.text }]}>{t('settings.customTax')}</Text>
+            <Text style={[st.switchSub, { color: colors.textMuted }]}>{t('settings.customTaxSub')}</Text>
+          </View>
+          <Switch value={!!settings.useCustomTax} onValueChange={(v) => update('useCustomTax', v)} trackColor={{ true: colors.primary }} thumbColor="#fff" />
+        </View>
+        {settings.useCustomTax && (
+          <View style={[st.rateWrap, { borderColor: colors.border, margin: spacing.md, marginTop: spacing.sm }]}>
+            <TextInput
+              style={[st.rateInput, { color: colors.text, fontSize: 18 }]}
+              keyboardType="numeric"
+              placeholder="0"
+              placeholderTextColor={colors.textMuted}
+              value={settings.customTaxPercent != null ? String(settings.customTaxPercent) : ''}
+              onChangeText={(v) => update('customTaxPercent', parseFloat(v.replace(',', '.')) || 0)}
+              selectionColor={colors.primary}
+            />
+            <View style={[st.rateUnit, { backgroundColor: colors.surface2, borderLeftColor: colors.border }]}>
+              <Text style={[st.rateUnitText, { color: colors.textSec }]}>%</Text>
+            </View>
+          </View>
+        )}
+      </View>
+
       {/* B2B ZUS */}
       {showB2bOptions && (
         <>
