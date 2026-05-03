@@ -40,6 +40,7 @@ export default function TimerScreen() {
   const [showBreakModal, setShowBreakModal] = useState(false);
   const [breakMinutesInput, setBreakMinutesInput] = useState('0');
   const [pendingStop, setPendingStop] = useState<{ endTime: number; startTime: number; rawDurationMs: number; isHoliday: boolean } | null>(null);
+  const [selectedProject, setSelectedProject] = useState<string | undefined>(undefined);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
@@ -120,7 +121,7 @@ export default function TimerScreen() {
     const { endTime, startTime: st, rawDurationMs, isHoliday } = pendingStop;
     const breakMin = Math.max(0, parseInt(breakMinutesInput) || 0);
     const durationMs = Math.max(0, rawDurationMs - (isHoliday ? 0 : breakMin * 60000));
-    await saveSession({ id: String(endTime), startTime: st, endTime, durationMs, holidayMode: isHoliday });
+    await saveSession({ id: String(endTime), startTime: st, endTime, durationMs, holidayMode: isHoliday, project: selectedProject });
     await clearActiveSession();
     const { gross, net } = resolveGrossAndNet(msToHours(durationMs), settings);
     setRunning(false);
@@ -128,6 +129,7 @@ export default function TimerScreen() {
     setElapsed(0);
     setShowBreakModal(false);
     setPendingStop(null);
+    setSelectedProject(undefined);
     setSavedSummary({ durationMs, gross, net, currency: settings.currency });
   }
 
@@ -145,12 +147,13 @@ export default function TimerScreen() {
     const breakMin = Math.max(0, parseInt(manualBreakMinutes) || 0);
     const durationMs = Math.max(0, rawDurationMs - (isHoliday ? 0 : breakMin * 60000));
     const effectiveHours = msToHours(durationMs);
-    await saveSession({ id: String(now), startTime: now - rawDurationMs, endTime: now, durationMs, note: manualNote || undefined, manualEntry: true, holidayMode: isHoliday });
+    await saveSession({ id: String(now), startTime: now - rawDurationMs, endTime: now, durationMs, note: manualNote || undefined, manualEntry: true, holidayMode: isHoliday, project: selectedProject });
     const { gross, net } = resolveGrossAndNet(effectiveHours, settings);
     setShowManual(false);
     setManualHours('');
     setManualNote('');
     setManualBreakMinutes('0');
+    setSelectedProject(undefined);
     setSavedSummary({ durationMs, gross, net, currency: settings.currency });
   }
 
@@ -344,6 +347,30 @@ export default function TimerScreen() {
                 onChangeText={setManualBreakMinutes}
               />
             </View>
+            {(settings?.projects?.length ?? 0) > 0 && (
+              <View style={st.breakRow}>
+                <Text style={[st.breakRowLabel, { color: colors.textSec }]}>{t('timer.project')}</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                  <View style={{ flexDirection: 'row', gap: spacing.xs }}>
+                    <TouchableOpacity
+                      onPress={() => setSelectedProject(undefined)}
+                      style={[st.breakChip, { borderColor: colors.border }, !selectedProject && { backgroundColor: colors.surface2 }]}
+                    >
+                      <Text style={[st.breakChipText, { color: colors.textSec }]}>{t('timer.noProject')}</Text>
+                    </TouchableOpacity>
+                    {settings!.projects!.map(p => (
+                      <TouchableOpacity
+                        key={p}
+                        onPress={() => setSelectedProject(p)}
+                        style={[st.breakChip, { borderColor: colors.border }, selectedProject === p && { backgroundColor: colors.primary, borderColor: colors.primary }]}
+                      >
+                        <Text style={[st.breakChipText, { color: colors.textSec }, selectedProject === p && { color: '#fff' }]}>{p}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </ScrollView>
+              </View>
+            )}
             {settings?.country === 'NO' && (
               <TouchableOpacity onPress={() => setHolidayMode(v => !v)} activeOpacity={0.85} style={[st.holidayRow, { backgroundColor: holidayMode ? '#FEF3C7' : colors.surface2, borderColor: holidayMode ? '#F59E0B' : colors.border }]}>
                 <View style={st.holidayLeft}>
@@ -397,6 +424,30 @@ export default function TimerScreen() {
               value={breakMinutesInput}
               onChangeText={setBreakMinutesInput}
             />
+            {(settings?.projects?.length ?? 0) > 0 && (
+              <View style={st.breakRow}>
+                <Text style={[st.breakRowLabel, { color: colors.textSec }]}>{t('timer.project')}</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                  <View style={{ flexDirection: 'row', gap: spacing.xs }}>
+                    <TouchableOpacity
+                      onPress={() => setSelectedProject(undefined)}
+                      style={[st.breakChip, { borderColor: colors.border }, !selectedProject && { backgroundColor: colors.surface2 }]}
+                    >
+                      <Text style={[st.breakChipText, { color: colors.textSec }]}>{t('timer.noProject')}</Text>
+                    </TouchableOpacity>
+                    {settings!.projects!.map(p => (
+                      <TouchableOpacity
+                        key={p}
+                        onPress={() => setSelectedProject(p)}
+                        style={[st.breakChip, { borderColor: colors.border }, selectedProject === p && { backgroundColor: colors.primary, borderColor: colors.primary }]}
+                      >
+                        <Text style={[st.breakChipText, { color: colors.textSec }, selectedProject === p && { color: '#fff' }]}>{p}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </ScrollView>
+              </View>
+            )}
             <TouchableOpacity onPress={handleConfirmStop} activeOpacity={0.88} style={st.btnWrap}>
               <LinearGradient colors={['#DC2626', '#B91C1C']} style={st.mainBtn} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
                 <Ionicons name="stop" size={20} color="#fff" />

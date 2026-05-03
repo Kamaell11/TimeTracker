@@ -30,7 +30,9 @@
     "breakConfirm": "End session",
     "breakContinue": "Continue working",
     "breakLabel": "Break duration (min)",
-    "manualBreak": "Break (min)"
+    "manualBreak": "Break (min)",
+    "project": "Project",
+    "noProject": "No project"
   },
   "history": {
     "title": "Work History",
@@ -40,7 +42,10 @@
     "manualBadge": "manual",
     "confirmDelete": "Delete this session?",
     "exportCsv": "Export CSV",
-    "holidayBadge": "holiday"
+    "holidayBadge": "holiday",
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "dayTotal": "total"
   },
   "summary": {
     "title": "Summary",
@@ -52,6 +57,9 @@
     "totalNet": "Net",
     "taxPaid": "Tax & Social",
     "noData": "No sessions in this period",
+    "goal": "Goal",
+    "goalReached": "Goal reached!",
+    "goalRemaining": "to go",
     "chartDays": "Hours per day",
     "chartWeeks": "Hours per week"
   },
@@ -73,6 +81,12 @@
     "reminder": "Daily reminder",
     "reminderSub": "Remind me to start tracking",
     "reminderTime": "Reminder time",
+    "projects": "Projects",
+    "projectsAdd": "Add project",
+    "projectsPlaceholder": "Project name",
+    "goals": "Work goals",
+    "weeklyGoal": "Weekly goal (hours)",
+    "monthlyGoal": "Monthly goal (hours)",
     "autoBreak": "Auto break deduction",
     "autoBreakSub": "Deduct unpaid break automatically",
     "autoBreakThreshold": "Deduct after (hours)",

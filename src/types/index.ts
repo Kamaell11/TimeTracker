@@ -36,6 +36,9 @@ export interface UserSettings {
   reminderEnabled?: boolean;
   reminderHour?: number;
   reminderMinute?: number;
+  projects?: string[];
+  weeklyGoalHours?: number;
+  monthlyGoalHours?: number;
 }
 
 export interface WorkSession {
@@ -46,6 +49,7 @@ export interface WorkSession {
   note?: string;
   manualEntry?: boolean;
   holidayMode?: boolean;
+  project?: string;
 }
 
 export interface TaxBreakdown {

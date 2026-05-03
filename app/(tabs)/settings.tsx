@@ -29,6 +29,7 @@ export default function SettingsScreen() {
   const [saved, setSaved] = useState(false);
   const [unsaved, setUnsaved] = useState(false);
   const [, forceRerender] = useState(0);
+  const [newProject, setNewProject] = useState('');
 
   useEffect(() => { getSettings().then(setSettings); }, []);
 
@@ -46,6 +47,14 @@ export default function SettingsScreen() {
     const d = COUNTRY_DEFAULTS[country];
     setSettings((prev) => prev ? { ...prev, country, employmentType: d.employmentType, currency: d.currency } : prev);
     setUnsaved(true);
+  }
+
+  function addProject() {
+    const name = newProject.trim();
+    if (!name || !settings) return;
+    if ((settings.projects ?? []).includes(name)) return;
+    update('projects', [...(settings.projects ?? []), name]);
+    setNewProject('');
   }
 
   async function handleSave() {
@@ -378,6 +387,71 @@ export default function SettingsScreen() {
         </>
       )}
 
+      {/* Projects */}
+      <SectionHeader title={t('settings.projects')} colors={colors} />
+      <View style={[st.card, { backgroundColor: colors.surface, ...shadowSm(colors.shadow) }]}>
+        {(settings.projects ?? []).map((p, i) => (
+          <View key={p} style={[st.row, { borderBottomWidth: i < (settings.projects?.length ?? 0) - 1 ? 1 : 0, borderBottomColor: colors.borderLight }]}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
+              <Ionicons name="briefcase-outline" size={15} color={colors.textSec} />
+              <Text style={[st.rowText, { color: colors.text }]}>{p}</Text>
+            </View>
+            <TouchableOpacity onPress={() => update('projects', (settings.projects ?? []).filter(x => x !== p))}>
+              <Ionicons name="close-circle-outline" size={20} color={colors.textMuted} />
+            </TouchableOpacity>
+          </View>
+        ))}
+        <View style={[st.addProjectRow, { borderTopWidth: (settings.projects?.length ?? 0) > 0 ? 1 : 0, borderTopColor: colors.borderLight }]}>
+          <TextInput
+            style={[st.addProjectInput, { color: colors.text, borderColor: colors.border, backgroundColor: colors.surface2 }]}
+            placeholder={t('settings.projectsPlaceholder')}
+            placeholderTextColor={colors.textMuted}
+            value={newProject}
+            onChangeText={setNewProject}
+            onSubmitEditing={addProject}
+            returnKeyType="done"
+          />
+          <TouchableOpacity onPress={addProject} style={[st.addProjectBtn, { backgroundColor: colors.primary }]}>
+            <Ionicons name="add" size={18} color="#fff" />
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Goals */}
+      <SectionHeader title={t('settings.goals')} colors={colors} />
+      <View style={[st.card, { backgroundColor: colors.surface, ...shadowSm(colors.shadow) }]}>
+        <View style={[st.rateRow, { borderBottomWidth: 1, borderBottomColor: colors.borderLight }]}>
+          <Text style={[st.rateRowLabel, { color: colors.text }]}>{t('settings.weeklyGoal')}</Text>
+          <View style={[st.rateWrapInline, { borderColor: colors.border }]}>
+            <TextInput
+              style={[st.rateInputSm, { color: colors.text }]}
+              keyboardType="numeric"
+              placeholder="40"
+              placeholderTextColor={colors.textMuted}
+              value={settings.weeklyGoalHours != null ? String(settings.weeklyGoalHours) : ''}
+              onChangeText={(v) => update('weeklyGoalHours', parseFloat(v.replace(',', '.')) || undefined as any)}
+              selectionColor={colors.primary}
+            />
+            <Text style={[st.rateUnitText, { color: colors.textMuted, paddingRight: spacing.sm }]}>h</Text>
+          </View>
+        </View>
+        <View style={st.rateRow}>
+          <Text style={[st.rateRowLabel, { color: colors.text }]}>{t('settings.monthlyGoal')}</Text>
+          <View style={[st.rateWrapInline, { borderColor: colors.border }]}>
+            <TextInput
+              style={[st.rateInputSm, { color: colors.text }]}
+              keyboardType="numeric"
+              placeholder="160"
+              placeholderTextColor={colors.textMuted}
+              value={settings.monthlyGoalHours != null ? String(settings.monthlyGoalHours) : ''}
+              onChangeText={(v) => update('monthlyGoalHours', parseFloat(v.replace(',', '.')) || undefined as any)}
+              selectionColor={colors.primary}
+            />
+            <Text style={[st.rateUnitText, { color: colors.textMuted, paddingRight: spacing.sm }]}>h</Text>
+          </View>
+        </View>
+      </View>
+
       {/* Save button */}
       {unsaved && !saved && (
         <View style={[st.unsavedBanner, { backgroundColor: colors.warningLight }]}>
@@ -427,4 +501,7 @@ const st = StyleSheet.create({
   rateRowLabel: { fontSize: 14, fontWeight: '500', flex: 1 },
   rateWrapInline: { flexDirection: 'row', alignItems: 'center', borderWidth: 1.5, borderRadius: radius.md, overflow: 'hidden', minWidth: 100 },
   rateInputSm: { flex: 1, paddingHorizontal: spacing.sm, paddingVertical: spacing.sm, fontSize: 15, fontWeight: '600', textAlign: 'right', minWidth: 60 },
+  addProjectRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, padding: spacing.sm },
+  addProjectInput: { flex: 1, borderWidth: 1.5, borderRadius: radius.md, paddingHorizontal: spacing.sm, paddingVertical: spacing.sm, fontSize: 14 },
+  addProjectBtn: { width: 36, height: 36, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' },
 });

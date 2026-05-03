@@ -30,7 +30,9 @@
     "breakConfirm": "Zakończ sesję",
     "breakContinue": "Kontynuuj pracę",
     "breakLabel": "Czas przerwy (min)",
-    "manualBreak": "Przerwa (min)"
+    "manualBreak": "Przerwa (min)",
+    "project": "Projekt",
+    "noProject": "Bez projektu"
   },
   "history": {
     "title": "Historia pracy",
@@ -40,7 +42,10 @@
     "manualBadge": "ręczny",
     "confirmDelete": "Usunąć tę sesję?",
     "exportCsv": "Eksportuj CSV",
-    "holidayBadge": "świąteczne"
+    "holidayBadge": "świąteczne",
+    "today": "Dzisiaj",
+    "yesterday": "Wczoraj",
+    "dayTotal": "łącznie"
   },
   "summary": {
     "title": "Podsumowanie",
@@ -52,6 +57,9 @@
     "totalNet": "Netto",
     "taxPaid": "Podatki i składki",
     "noData": "Brak sesji w tym okresie",
+    "goal": "Cel",
+    "goalReached": "Cel osiągnięty!",
+    "goalRemaining": "do celu",
     "chartDays": "Godziny dziennie",
     "chartWeeks": "Godziny tygodniowo"
   },
@@ -73,6 +81,12 @@
     "reminder": "Dzienne przypomnienie",
     "reminderSub": "Przypomnij mi o rozpoczęciu śledzenia",
     "reminderTime": "Godzina przypomnienia",
+    "projects": "Projekty",
+    "projectsAdd": "Dodaj projekt",
+    "projectsPlaceholder": "Nazwa projektu",
+    "goals": "Cele godzinowe",
+    "weeklyGoal": "Cel tygodniowy (godziny)",
+    "monthlyGoal": "Cel miesięczny (godziny)",
     "autoBreak": "Automatyczne odejmowanie przerwy",
     "autoBreakSub": "Odejmuj nieplatną przerwę automatycznie",
     "autoBreakThreshold": "Odejmuj po (godziny)",

@@ -107,6 +107,9 @@ export default function SummaryScreen() {
   const totalDeductions = breakdown ? breakdown.socialContributions + breakdown.healthInsurance + breakdown.incomeTax : 0;
   const bars = buildDailyBars(filtered, period);
 
+  const goalHours = period === 'week' ? settings?.weeklyGoalHours : period === 'month' ? settings?.monthlyGoalHours : undefined;
+  const goalProgress = goalHours ? Math.min(1, totalHours / goalHours) : null;
+
   const periods: { key: Period; label: string }[] = [
     { key: 'today', label: t('summary.today') },
     { key: 'week', label: t('summary.week') },
@@ -139,6 +142,24 @@ export default function SummaryScreen() {
             <Text style={st.sessionCount}>{filtered.length} session{filtered.length !== 1 ? 's' : ''}</Text>
             <View style={st.hoursDecor} />
           </LinearGradient>
+
+          {/* Goal progress */}
+          {goalHours != null && goalProgress != null && (
+            <View style={[st.goalCard, { backgroundColor: colors.surface, ...shadowSm(colors.shadow) }]}>
+              <View style={st.goalHeader}>
+                <Text style={[st.goalLabel, { color: colors.textMuted }]}>{t('summary.goal')}</Text>
+                <Text style={[st.goalValue, { color: goalProgress >= 1 ? colors.success : colors.text }]}>
+                  {totalHours.toFixed(1)} / {goalHours}h
+                </Text>
+              </View>
+              <View style={[st.goalTrack, { backgroundColor: colors.surface2 }]}>
+                <View style={[st.goalBar, { width: `${goalProgress * 100}%` as any, backgroundColor: goalProgress >= 1 ? colors.success : colors.primary }]} />
+              </View>
+              <Text style={[st.goalStatus, { color: goalProgress >= 1 ? colors.success : colors.textMuted }]}>
+                {goalProgress >= 1 ? t('summary.goalReached') : `${(goalHours - totalHours).toFixed(1)}h ${t('summary.goalRemaining')}`}
+              </Text>
+            </View>
+          )}
 
           {/* Bar chart */}
           {bars.length > 0 && (
@@ -219,4 +240,11 @@ const st = StyleSheet.create({
   netBadge: { alignItems: 'center', padding: spacing.md, borderRadius: radius.lg, minWidth: 72 },
   netBadgeText: { fontSize: 26, fontWeight: '800' },
   netBadgeSub: { fontSize: 11, fontWeight: '600', opacity: 0.7 },
+  goalCard: { borderRadius: radius.xl, padding: spacing.md, gap: spacing.sm },
+  goalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  goalLabel: { fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.8 },
+  goalValue: { fontSize: 15, fontWeight: '700', fontVariant: ['tabular-nums'] },
+  goalTrack: { height: 8, borderRadius: 4, overflow: 'hidden' },
+  goalBar: { height: '100%', borderRadius: 4 },
+  goalStatus: { fontSize: 12, fontWeight: '500' },
 });
