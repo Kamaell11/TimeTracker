@@ -260,6 +260,7 @@ export default function HistoryScreen() {
   async function handleExportCsv() {
     if (!settings || sessions.length === 0) return;
     setShowExportModal(false);
+    await new Promise(r => setTimeout(r, 350));
     const csv = buildCsv(sessions, settings);
     if (Platform.OS === 'web') {
       downloadCsvWeb(csv);
@@ -272,6 +273,7 @@ export default function HistoryScreen() {
     if (!settings || sessions.length === 0) return;
     setShowExportModal(false);
     setExporting(true);
+    await new Promise(r => setTimeout(r, 350));
     try {
       const html = buildPdfHtml(sessions, settings, t);
       if (Platform.OS === 'web') {
@@ -402,7 +404,12 @@ export default function HistoryScreen() {
       <Modal visible={showExportModal} transparent animationType="fade">
         <TouchableOpacity style={st.modalOverlay} activeOpacity={1} onPress={() => setShowExportModal(false)}>
           <View style={[st.exportSheet, { backgroundColor: colors.surface }]}>
-            <Text style={[st.exportSheetTitle, { color: colors.textMuted }]}>{t('history.exportChoose')}</Text>
+            <View style={st.exportSheetHeader}>
+              <Text style={[st.exportSheetTitle, { color: colors.textMuted }]}>{t('history.exportChoose')}</Text>
+              <TouchableOpacity onPress={() => setShowExportModal(false)} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+                <Ionicons name="close" size={22} color={colors.textMuted} />
+              </TouchableOpacity>
+            </View>
 
             <TouchableOpacity onPress={handleExportPdf} style={[st.exportOption, { borderBottomWidth: 1, borderBottomColor: colors.borderLight }]}>
               <View style={[st.exportIconWrap, { backgroundColor: '#FEE2E2' }]}>
@@ -461,7 +468,8 @@ const st = StyleSheet.create({
   exportText: { fontSize: 13, fontWeight: '700' },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'center', alignItems: 'center', padding: spacing.lg },
   exportSheet: { width: '100%', borderRadius: radius.xxl, overflow: 'hidden', paddingTop: spacing.md },
-  exportSheetTitle: { fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1, textAlign: 'center', paddingBottom: spacing.sm },
+  exportSheetHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: spacing.md, paddingBottom: spacing.sm },
+  exportSheetTitle: { fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1 },
   exportOption: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.md },
   exportIconWrap: { width: 44, height: 44, borderRadius: radius.lg, alignItems: 'center', justifyContent: 'center' },
   exportOptionText: { flex: 1 },
