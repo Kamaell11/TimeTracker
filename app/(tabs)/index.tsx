@@ -41,6 +41,7 @@ export default function TimerScreen() {
   const [breakMinutesInput, setBreakMinutesInput] = useState('0');
   const [pendingStop, setPendingStop] = useState<{ endTime: number; startTime: number; rawDurationMs: number; isHoliday: boolean } | null>(null);
   const [selectedProject, setSelectedProject] = useState<string | undefined>(undefined);
+  const [stopNote, setStopNote] = useState('');
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
@@ -121,7 +122,7 @@ export default function TimerScreen() {
     const { endTime, startTime: st, rawDurationMs, isHoliday } = pendingStop;
     const breakMin = Math.max(0, parseInt(breakMinutesInput) || 0);
     const durationMs = Math.max(0, rawDurationMs - (isHoliday ? 0 : breakMin * 60000));
-    await saveSession({ id: String(endTime), startTime: st, endTime, durationMs, holidayMode: isHoliday, project: selectedProject });
+    await saveSession({ id: String(endTime), startTime: st, endTime, durationMs, holidayMode: isHoliday, project: selectedProject, note: stopNote.trim() || undefined });
     await clearActiveSession();
     const { gross, net } = resolveGrossAndNet(msToHours(durationMs), settings);
     setRunning(false);
@@ -130,6 +131,7 @@ export default function TimerScreen() {
     setShowBreakModal(false);
     setPendingStop(null);
     setSelectedProject(undefined);
+    setStopNote('');
     setSavedSummary({ durationMs, gross, net, currency: settings.currency });
   }
 
@@ -423,6 +425,14 @@ export default function TimerScreen() {
               keyboardType="numeric"
               value={breakMinutesInput}
               onChangeText={setBreakMinutesInput}
+            />
+            <TextInput
+              style={[st.input, { borderColor: colors.border, color: colors.text, backgroundColor: colors.surface2 }]}
+              placeholder={t('timer.stopNote')}
+              placeholderTextColor={colors.textMuted}
+              value={stopNote}
+              onChangeText={setStopNote}
+              returnKeyType="done"
             />
             {(settings?.projects?.length ?? 0) > 0 && (
               <View style={st.breakRow}>
