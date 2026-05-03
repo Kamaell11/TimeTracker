@@ -2,6 +2,8 @@ import { useCallback, useState } from 'react';
 import { FlatList, Modal, Platform, Share, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+
+type TFunction = (key: string) => string;
 import { Ionicons } from '@expo/vector-icons';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
@@ -67,46 +69,79 @@ function buildListItems(sessions: WorkSession[], todayLabel: string, yesterdayLa
   return items;
 }
 
-function buildCsv(sessions: WorkSession[], settings: UserSettings): string {
-  const header = ['Date', 'Start', 'End', 'Duration (h)', 'Gross', 'Tax & Social', 'Net', 'Currency', 'Project', 'Holiday', 'Note'].join(',');
+function csvCell(value: string): string {
+  return value.includes(',') || value.includes('"') || value.includes('\n')
+    ? `"${value.replace(/"/g, '""')}"` : value;
+}
+
+function buildCsv(sessions: WorkSession[], settings: UserSettings, t: TFunction, locale: string): string {
+  const totalMs = sessions.reduce((a, s) => a + s.durationMs, 0);
+  const totalHours = msToHours(totalMs);
+  const totalBd = calculateTax(hoursToGross(totalHours, settings.hourlyRate), settings);
+  const totalDeductions = totalBd.socialContributions + totalBd.healthInsurance + totalBd.incomeTax;
+  const generated = new Date().toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' });
+
+  const summary = [
+    [t('history.pdfReportTitle'), generated],
+    [t('history.pdfTotalHours'), `${totalHours.toFixed(2)}h`],
+    [t('history.pdfTotalGross'), `${totalBd.gross.toFixed(2)} ${settings.currency}`],
+    [t('history.pdfTax'), `-${totalDeductions.toFixed(2)} ${settings.currency}`],
+    [t('history.pdfTotalNet'), `${totalBd.net.toFixed(2)} ${settings.currency}`],
+    [],
+  ].map(row => row.map(csvCell).join(','));
+
+  const header = [
+    t('history.pdfDate'),
+    t('history.pdfTime'),
+    `${t('history.pdfDuration')} (h)`,
+    t('history.pdfProject'),
+    `${t('history.pdfGross')} (${settings.currency})`,
+    `${t('history.pdfTax')} (${settings.currency})`,
+    `${t('history.pdfNet')} (${settings.currency})`,
+    t('history.holidayBadge'),
+    t('history.pdfNote'),
+  ].map(csvCell).join(',');
+
+  const yesLabel = locale.startsWith('pl') ? 'tak' : 'yes';
+  const noLabel  = locale.startsWith('pl') ? 'nie' : 'no';
+
   const rows = sessions.map((s) => {
     const hours = msToHours(s.durationMs);
     const bd = calculateTax(hoursToGross(hours, settings.hourlyRate), settings);
     const deductions = bd.socialContributions + bd.healthInsurance + bd.incomeTax;
     const date = new Date(s.startTime);
     return [
-      date.toLocaleDateString('en-CA'),
-      new Date(s.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      new Date(s.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      date.toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' }),
+      `${date.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })} – ${new Date(s.endTime).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })}`,
       hours.toFixed(2),
+      s.project ?? '',
       bd.gross.toFixed(2),
       deductions.toFixed(2),
       bd.net.toFixed(2),
-      settings.currency,
-      s.project ?? '',
-      s.holidayMode ? 'yes' : 'no',
-      s.note ? `"${s.note.replace(/"/g, '""')}"` : '',
+      s.holidayMode ? yesLabel : noLabel,
+      s.note ? csvCell(s.note) : '',
     ].join(',');
   });
-  return [header, ...rows].join('\n');
+
+  return [...summary, header, ...rows].join('\n');
 }
 
-function buildPdfHtml(sessions: WorkSession[], settings: UserSettings, t: (k: string) => string): string {
+function buildPdfHtml(sessions: WorkSession[], settings: UserSettings, t: TFunction, locale: string): string {
   const totalMs = sessions.reduce((a, s) => a + s.durationMs, 0);
   const totalHours = msToHours(totalMs);
   const totalGross = hoursToGross(totalHours, settings.hourlyRate);
   const totalBd = calculateTax(totalGross, settings);
   const totalDeductions = totalBd.socialContributions + totalBd.healthInsurance + totalBd.incomeTax;
 
-  const generated = new Date().toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' });
+  const generated = new Date().toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' });
 
   const rows = sessions.map((s) => {
     const hours = msToHours(s.durationMs);
     const bd = calculateTax(hoursToGross(hours, settings.hourlyRate), settings);
     const deductions = bd.socialContributions + bd.healthInsurance + bd.incomeTax;
     const date = new Date(s.startTime);
-    const dateStr = date.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
-    const timeStr = `${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} – ${new Date(s.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+    const dateStr = date.toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' });
+    const timeStr = `${date.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })} – ${new Date(s.endTime).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })}`;
     const tags = [
       s.holidayMode ? '🎉' : '',
       s.manualEntry ? '✎' : '',
@@ -239,7 +274,8 @@ function downloadCsvWeb(csv: string) {
 }
 
 export default function HistoryScreen() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const locale = i18n.language === 'pl' ? 'pl-PL' : 'en-GB';
   const { colors } = useTheme();
   const [sessions, setSessions] = useState<WorkSession[]>([]);
   const [settings, setSettings] = useState<UserSettings | null>(null);
@@ -261,7 +297,7 @@ export default function HistoryScreen() {
     if (!settings || sessions.length === 0) return;
     setShowExportModal(false);
     await new Promise(r => setTimeout(r, 350));
-    const csv = buildCsv(sessions, settings);
+    const csv = buildCsv(sessions, settings, t, locale);
     if (Platform.OS === 'web') {
       downloadCsvWeb(csv);
     } else {
@@ -275,7 +311,7 @@ export default function HistoryScreen() {
     setExporting(true);
     await new Promise(r => setTimeout(r, 350));
     try {
-      const html = buildPdfHtml(sessions, settings, t);
+      const html = buildPdfHtml(sessions, settings, t, locale);
       if (Platform.OS === 'web') {
         const w = window.open('', '_blank');
         if (w) { w.document.write(html); w.document.close(); w.print(); }
