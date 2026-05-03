@@ -23,7 +23,14 @@
     "holidayModeSub": "100% supplement + Kongens tillegg",
     "regularPay": "Regular pay",
     "holidaySupplement": "Holiday supplement",
-    "breakDeduction": "Break (30 min)"
+    "breakDeduction": "Break (30 min)",
+    "breakModal": "How long were your breaks?",
+    "breakWorked": "Time worked",
+    "breakNone": "No break",
+    "breakConfirm": "End session",
+    "breakContinue": "Continue working",
+    "breakLabel": "Break duration (min)",
+    "manualBreak": "Break (min)"
   },
   "history": {
     "title": "Work History",

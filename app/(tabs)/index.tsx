@@ -17,7 +17,7 @@ import { useTranslation } from 'react-i18next';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { clearActiveSession, getActiveSession, getSettings, saveSession, setActiveSession } from '../../src/storage';
-import { applyAutoBreak, calculateHolidayPay, calculateTax, formatCurrency, formatDuration, hoursToGross, msToHours } from '../../src/utils/tax';
+import { calculateHolidayPay, calculateTax, formatCurrency, formatDuration, hoursToGross, msToHours } from '../../src/utils/tax';
 import { UserSettings } from '../../src/types';
 import { useTheme } from '../../src/context/ThemeContext';
 import { radius, shadow, spacing } from '../../src/styles/theme';
@@ -34,8 +34,12 @@ export default function TimerScreen() {
   const [showManual, setShowManual] = useState(false);
   const [manualHours, setManualHours] = useState('');
   const [manualNote, setManualNote] = useState('');
+  const [manualBreakMinutes, setManualBreakMinutes] = useState('0');
   const [holidayMode, setHolidayMode] = useState(false);
   const [savedSummary, setSavedSummary] = useState<SavedSummary | null>(null);
+  const [showBreakModal, setShowBreakModal] = useState(false);
+  const [breakMinutesInput, setBreakMinutesInput] = useState('0');
+  const [pendingStop, setPendingStop] = useState<{ endTime: number; startTime: number; rawDurationMs: number; isHoliday: boolean } | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
@@ -99,19 +103,37 @@ export default function TimerScreen() {
     return { gross: bd.gross, net: bd.net };
   }
 
-  async function handleStop() {
-    if (!startTime || !settings) return;
+  function handleStop() {
+    if (!startTime || !settings || pendingStop) return;
     const endTime = Date.now();
     const rawDurationMs = endTime - startTime;
     const isHoliday = holidayMode && settings.country === 'NO';
-    const durationMs = isHoliday ? rawDurationMs : applyAutoBreak(rawDurationMs, settings);
-    await saveSession({ id: String(endTime), startTime, endTime, durationMs, holidayMode: isHoliday });
+    const suggested = !isHoliday && settings.autoBreakEnabled && rawDurationMs >= (settings.autoBreakThresholdHours ?? 6) * 3600000
+      ? (settings.autoBreakMinutes ?? 30) : 0;
+    setPendingStop({ endTime, startTime, rawDurationMs, isHoliday });
+    setBreakMinutesInput(String(suggested));
+    setShowBreakModal(true);
+  }
+
+  async function handleConfirmStop() {
+    if (!pendingStop || !settings) return;
+    const { endTime, startTime: st, rawDurationMs, isHoliday } = pendingStop;
+    const breakMin = Math.max(0, parseInt(breakMinutesInput) || 0);
+    const durationMs = Math.max(0, rawDurationMs - (isHoliday ? 0 : breakMin * 60000));
+    await saveSession({ id: String(endTime), startTime: st, endTime, durationMs, holidayMode: isHoliday });
     await clearActiveSession();
     const { gross, net } = resolveGrossAndNet(msToHours(durationMs), settings);
     setRunning(false);
     setStartTime(null);
     setElapsed(0);
+    setShowBreakModal(false);
+    setPendingStop(null);
     setSavedSummary({ durationMs, gross, net, currency: settings.currency });
+  }
+
+  function handleCancelStop() {
+    setShowBreakModal(false);
+    setPendingStop(null);
   }
 
   async function handleSaveManual() {
@@ -120,14 +142,22 @@ export default function TimerScreen() {
     const now = Date.now();
     const isHoliday = holidayMode && settings.country === 'NO';
     const rawDurationMs = hours * 3600000;
-    const durationMs = isHoliday ? rawDurationMs : applyAutoBreak(rawDurationMs, settings);
+    const breakMin = Math.max(0, parseInt(manualBreakMinutes) || 0);
+    const durationMs = Math.max(0, rawDurationMs - (isHoliday ? 0 : breakMin * 60000));
     const effectiveHours = msToHours(durationMs);
     await saveSession({ id: String(now), startTime: now - rawDurationMs, endTime: now, durationMs, note: manualNote || undefined, manualEntry: true, holidayMode: isHoliday });
     const { gross, net } = resolveGrossAndNet(effectiveHours, settings);
     setShowManual(false);
     setManualHours('');
     setManualNote('');
+    setManualBreakMinutes('0');
     setSavedSummary({ durationMs, gross, net, currency: settings.currency });
+  }
+
+  function openManual() {
+    const defaultBreak = settings?.autoBreakEnabled ? String(settings.autoBreakMinutes ?? 30) : '0';
+    setManualBreakMinutes(defaultBreak);
+    setShowManual(true);
   }
 
   const hours = msToHours(elapsed);
@@ -262,7 +292,7 @@ export default function TimerScreen() {
             </LinearGradient>
           </TouchableOpacity>
 
-          <TouchableOpacity style={[st.secBtn, { borderColor: colors.border, backgroundColor: colors.surface2 }]} onPress={() => setShowManual(true)}>
+          <TouchableOpacity style={[st.secBtn, { borderColor: colors.border, backgroundColor: colors.surface2 }]} onPress={openManual}>
             <Ionicons name="add-outline" size={18} color={colors.primary} />
             <Text style={[st.secBtnText, { color: colors.primary }]}>{t('timer.addManual')}</Text>
           </TouchableOpacity>
@@ -290,6 +320,30 @@ export default function TimerScreen() {
               value={manualNote}
               onChangeText={setManualNote}
             />
+            <View style={st.breakRow}>
+              <Text style={[st.breakRowLabel, { color: colors.textSec }]}>{t('timer.manualBreak')}</Text>
+              <View style={st.breakChips}>
+                {[0, 15, 30, 45].map(min => (
+                  <TouchableOpacity
+                    key={min}
+                    onPress={() => setManualBreakMinutes(String(min))}
+                    style={[st.breakChip, { borderColor: colors.border }, manualBreakMinutes === String(min) && { backgroundColor: colors.primary, borderColor: colors.primary }]}
+                  >
+                    <Text style={[st.breakChipText, { color: colors.textSec }, manualBreakMinutes === String(min) && { color: '#fff' }]}>
+                      {min === 0 ? t('timer.breakNone') : `${min} min`}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              <TextInput
+                style={[st.breakInput, { borderColor: colors.border, color: colors.text, backgroundColor: colors.surface2 }]}
+                keyboardType="numeric"
+                placeholder="0"
+                placeholderTextColor={colors.textMuted}
+                value={manualBreakMinutes}
+                onChangeText={setManualBreakMinutes}
+              />
+            </View>
             {settings?.country === 'NO' && (
               <TouchableOpacity onPress={() => setHolidayMode(v => !v)} activeOpacity={0.85} style={[st.holidayRow, { backgroundColor: holidayMode ? '#FEF3C7' : colors.surface2, borderColor: holidayMode ? '#F59E0B' : colors.border }]}>
                 <View style={st.holidayLeft}>
@@ -306,6 +360,51 @@ export default function TimerScreen() {
             </TouchableOpacity>
             <TouchableOpacity style={[st.secBtn, { borderColor: colors.border, backgroundColor: colors.surface2 }]} onPress={() => setShowManual(false)}>
               <Text style={[st.secBtnText, { color: colors.textSec }]}>{t('timer.cancel')}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Break confirmation modal */}
+      <Modal visible={showBreakModal} transparent animationType="slide">
+        <View style={st.overlay}>
+          <View style={[st.sheet, { backgroundColor: colors.surface }]}>
+            <View style={[st.sheetHandle, { backgroundColor: colors.border }]} />
+            <Text style={[st.sheetTitle, { color: colors.text }]}>{t('timer.breakModal')}</Text>
+            {pendingStop && (
+              <Text style={[st.breakWorkedText, { color: colors.textMuted }]}>
+                {t('timer.breakWorked')}: {formatDuration(pendingStop.rawDurationMs)}
+              </Text>
+            )}
+            <View style={st.breakChips}>
+              {[0, 15, 30, 45].map(min => (
+                <TouchableOpacity
+                  key={min}
+                  onPress={() => setBreakMinutesInput(String(min))}
+                  style={[st.breakChip, { borderColor: colors.border }, breakMinutesInput === String(min) && { backgroundColor: colors.primary, borderColor: colors.primary }]}
+                >
+                  <Text style={[st.breakChipText, { color: colors.textSec }, breakMinutesInput === String(min) && { color: '#fff' }]}>
+                    {min === 0 ? t('timer.breakNone') : `${min} min`}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            <TextInput
+              style={[st.input, { borderColor: colors.border, color: colors.text, backgroundColor: colors.surface2 }]}
+              placeholder={t('timer.breakLabel')}
+              placeholderTextColor={colors.textMuted}
+              keyboardType="numeric"
+              value={breakMinutesInput}
+              onChangeText={setBreakMinutesInput}
+            />
+            <TouchableOpacity onPress={handleConfirmStop} activeOpacity={0.88} style={st.btnWrap}>
+              <LinearGradient colors={['#DC2626', '#B91C1C']} style={st.mainBtn} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+                <Ionicons name="stop" size={20} color="#fff" />
+                <Text style={st.mainBtnText}>{t('timer.breakConfirm')}</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+            <TouchableOpacity style={[st.secBtn, { borderColor: colors.border, backgroundColor: colors.surface2 }]} onPress={handleCancelStop}>
+              <Text style={[st.secBtnText, { color: colors.textSec }]}>{t('timer.breakContinue')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -357,6 +456,13 @@ const st = StyleSheet.create({
   sheetHandle: { width: 36, height: 4, borderRadius: 2, alignSelf: 'center', marginBottom: spacing.sm },
   sheetTitle: { fontSize: 20, fontWeight: '700' },
   input: { borderWidth: 1.5, borderRadius: radius.md, padding: spacing.md, fontSize: 17 },
+  breakRow: { gap: spacing.xs },
+  breakRowLabel: { fontSize: 13, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 },
+  breakChips: { flexDirection: 'row', gap: spacing.xs },
+  breakChip: { flex: 1, paddingVertical: spacing.sm, borderRadius: radius.md, borderWidth: 1.5, alignItems: 'center' },
+  breakChipText: { fontSize: 13, fontWeight: '600' },
+  breakInput: { borderWidth: 1.5, borderRadius: radius.md, padding: spacing.sm, fontSize: 16, textAlign: 'center' },
+  breakWorkedText: { fontSize: 14, marginBottom: spacing.xs },
   holidayRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: spacing.md, borderRadius: radius.lg, borderWidth: 1.5, gap: spacing.sm },
   holidayLeft: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flex: 1 },
   holidayLabel: { fontSize: 14, fontWeight: '600' },

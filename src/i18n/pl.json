@@ -23,7 +23,14 @@
     "holidayModeSub": "100% dodatek + Kongens tillegg",
     "regularPay": "Stawka podstawowa",
     "holidaySupplement": "Dodatek świąteczny",
-    "breakDeduction": "Przerwa (30 min)"
+    "breakDeduction": "Przerwa (30 min)",
+    "breakModal": "Ile trwały przerwy?",
+    "breakWorked": "Czas pracy",
+    "breakNone": "Bez przerwy",
+    "breakConfirm": "Zakończ sesję",
+    "breakContinue": "Kontynuuj pracę",
+    "breakLabel": "Czas przerwy (min)",
+    "manualBreak": "Przerwa (min)"
   },
   "history": {
     "title": "Historia pracy",
