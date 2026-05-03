@@ -335,7 +335,7 @@ export default function HistoryScreen() {
             {breakdown && (
               <>
                 <Text style={[st.netAmount, { color: colors.primary }]}>{formatCurrency(breakdown.net, settings!.currency)}</Text>
-                <Text style={[st.grossAmount, { color: colors.textMuted }]}>{formatCurrency(breakdown.gross, settings!.currency)} gross</Text>
+                <Text style={[st.grossAmount, { color: colors.textMuted }]}>{formatCurrency(breakdown.gross, settings!.currency)} {t('timer.gross').toLowerCase()}</Text>
               </>
             )}
           </View>

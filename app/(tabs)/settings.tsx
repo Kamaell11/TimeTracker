@@ -87,7 +87,7 @@ export default function SettingsScreen() {
     <ScrollView style={{ backgroundColor: colors.bg }} contentContainerStyle={[st.container, { backgroundColor: colors.bg }]}>
 
       {/* Appearance */}
-      <SectionHeader title="Appearance" colors={colors} />
+      <SectionHeader title={t('settings.appearance')} colors={colors} />
       <View style={[st.card, { backgroundColor: colors.surface, ...shadowSm(colors.shadow) }]}>
         <View style={st.themeRow}>
           {THEME_MODES.map(({ value, icon, label }) => (

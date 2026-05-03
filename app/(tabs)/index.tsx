@@ -204,12 +204,12 @@ export default function TimerScreen() {
           {breakdown && running && (
             <View style={[st.earningsRow, { backgroundColor: colors.surface2, borderRadius: radius.lg }]}>
               <View style={st.earningsItem}>
-                <Text style={[st.earningsLabel, { color: colors.textMuted }]}>GROSS</Text>
+                <Text style={[st.earningsLabel, { color: colors.textMuted }]}>{t('timer.gross').toUpperCase()}</Text>
                 <Text style={[st.earningsValue, { color: colors.textSec }]}>{formatCurrency(breakdown.gross, settings!.currency)}</Text>
               </View>
               <View style={[st.earningsSep, { backgroundColor: colors.border }]} />
               <View style={st.earningsItem}>
-                <Text style={[st.earningsLabel, { color: colors.textMuted }]}>NET</Text>
+                <Text style={[st.earningsLabel, { color: colors.textMuted }]}>{t('timer.net').toUpperCase()}</Text>
                 <Text style={[st.earningsValue, { color: colors.primary }]}>{formatCurrency(breakdown.net, settings!.currency)}</Text>
               </View>
             </View>
@@ -221,7 +221,7 @@ export default function TimerScreen() {
               <View style={st.savedHeader}>
                 <View style={st.savedIconRow}>
                   <Ionicons name="checkmark-circle" size={22} color={colors.success} />
-                  <Text style={[st.savedTitle, { color: colors.success }]}>Session saved</Text>
+                  <Text style={[st.savedTitle, { color: colors.success }]}>{t('timer.sessionSaved')}</Text>
                 </View>
                 <TouchableOpacity onPress={() => setSavedSummary(null)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
                   <Ionicons name="close" size={18} color={colors.success} />
@@ -230,7 +230,7 @@ export default function TimerScreen() {
               <Text style={[st.savedDuration, { color: colors.text }]}>{formatDuration(savedSummary.durationMs)}</Text>
               <View style={st.savedRow}>
                 <View style={st.savedItem}>
-                  <Text style={[st.savedLabel, { color: colors.textSec }]}>Gross</Text>
+                  <Text style={[st.savedLabel, { color: colors.textSec }]}>{t('timer.gross')}</Text>
                   <Text style={[st.savedAmount, { color: colors.text }]}>{formatCurrency(savedSummary.gross, savedSummary.currency)}</Text>
                 </View>
                 <View style={[st.savedSep, { backgroundColor: colors.success, opacity: 0.2 }]} />

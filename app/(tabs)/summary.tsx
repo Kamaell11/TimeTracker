@@ -139,7 +139,7 @@ export default function SummaryScreen() {
           <LinearGradient colors={colors.primaryGrad} style={st.hoursCard} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
             <Text style={st.hoursLabel}>{t('summary.totalHours')}</Text>
             <Text style={st.hoursValue}>{totalHours.toFixed(2)}<Text style={st.hoursUnit}>h</Text></Text>
-            <Text style={st.sessionCount}>{filtered.length} session{filtered.length !== 1 ? 's' : ''}</Text>
+            <Text style={st.sessionCount}>{filtered.length} {t(filtered.length !== 1 ? 'summary.sessions' : 'summary.session')}</Text>
             <View style={st.hoursDecor} />
           </LinearGradient>
 
@@ -201,7 +201,7 @@ export default function SummaryScreen() {
                   <Text style={[st.netBadgeText, { color: colors.primary }]}>
                     {((breakdown.net / breakdown.gross) * 100).toFixed(0)}%
                   </Text>
-                  <Text style={[st.netBadgeSub, { color: colors.primary }]}>kept</Text>
+                  <Text style={[st.netBadgeSub, { color: colors.primary }]}>{t('summary.kept')}</Text>
                 </View>
               </View>
             </>
